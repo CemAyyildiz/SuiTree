@@ -1,10 +1,13 @@
 import { ConnectButton } from "@mysten/dapp-kit";
-import { Box, Container, Flex, Heading } from "@radix-ui/themes";
-import { WalletStatus } from "./WalletStatus";
+import { Box, Flex, Heading } from "@radix-ui/themes";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { HomePage } from "./HomePage";
+import { ProfileEditor } from "./ProfileEditor";
+import { ProfileView } from "./ProfileView";
 
 function App() {
   return (
-    <>
+    <BrowserRouter>
       <Flex
         position="sticky"
         px="4"
@@ -12,27 +15,29 @@ function App() {
         justify="between"
         style={{
           borderBottom: "1px solid var(--gray-a2)",
+          backgroundColor: "var(--color-background)",
+          top: 0,
+          zIndex: 100,
         }}
       >
         <Box>
-          <Heading>dApp Starter Template</Heading>
+          <Link to="/" style={{ textDecoration: "none", color: "inherit" }}>
+            <Heading>🌳 SuiTree</Heading>
+          </Link>
         </Box>
 
         <Box>
           <ConnectButton />
         </Box>
       </Flex>
-      <Container>
-        <Container
-          mt="5"
-          pt="2"
-          px="4"
-          style={{ background: "var(--gray-a2)", minHeight: 500 }}
-        >
-          <WalletStatus />
-        </Container>
-      </Container>
-    </>
+
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/create" element={<ProfileEditor />} />
+        <Route path="/edit/:objectId" element={<ProfileEditor />} />
+        <Route path="/profile/:objectId" element={<ProfileView />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
