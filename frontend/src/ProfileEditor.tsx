@@ -3,6 +3,7 @@ import {
   useSignAndExecuteTransaction,
   useSuiClient,
 } from "@mysten/dapp-kit";
+import { useZkLogin } from "@mysten/enoki/react";
 import { Transaction } from "@mysten/sui/transactions";
 import {
   Box,
@@ -28,12 +29,16 @@ export function ProfileEditor(props?: ProfileEditorProps) {
   const params = useParams<{ objectId?: string }>();
   const objectId = props?.objectId || params.objectId;
   const account = useCurrentAccount();
+  const zkLogin = useZkLogin();
   const suiClient = useSuiClient();
   const navigate = useNavigate();
-  const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
 
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<LinkTreeProfile | null>(null);
+
+  // Hem normal cüzdan hem zkLogin kontrolü
+  const userAddress = account?.address || zkLogin.address;
 
   // Form state
   const [title, setTitle] = useState("");
@@ -98,7 +103,7 @@ export function ProfileEditor(props?: ProfileEditorProps) {
   };
 
   const handleCreateProfile = async () => {
-    if (!account?.address) return;
+    if (!userAddress) return;
 
     setLoading(true);
     try {
@@ -163,43 +168,42 @@ export function ProfileEditor(props?: ProfileEditorProps) {
       // Transfer to sender
       tx.moveCall({
         target: `${PACKAGE_ID}::${MODULE_NAME}::transfer_profile`,
-        arguments: [profile, tx.pure.address(account.address)],
+        arguments: [profile, tx.pure.address(userAddress)],
       });
 
-      signAndExecuteTransaction(
-        {
-          transaction: tx,
-        },
-        {
-          onSuccess: (result) => {
-            console.log("Profile created successfully!", result);
-            if (username) {
-              alert(`Profile created!\n\nYour public link:\n${username}.suitree.walrus.site`);
-            } else {
-              alert("Profile created successfully!");
-            }
-            navigate("/");
-          },
-          onError: (error) => {
-            console.error("Error creating profile:", error);
-            const errorMsg = error.message || String(error);
-            if (errorMsg.includes("ENameAlreadyTaken")) {
-              alert("Username is already taken! Please choose another.");
-            } else {
-              alert("Failed to create profile: " + errorMsg);
-            }
-            setLoading(false);
-          },
-        }
-      );
+      // Execute transaction
+      console.log('🚀 İşlem gönderiliyor...');
+      
+      const result = await signAndExecuteTransaction({
+        transaction: tx,
+      });
+
+      console.log("✅ Profile created successfully!", result.digest);
+      setLoading(false);
+      
+      if (username) {
+        alert(`🎉 Profil oluşturuldu!\n\nPublic link:\n${username}.suitree.walrus.site\n\nTransaction: ${result.digest}`);
+      } else {
+        alert(`🎉 Profil oluşturuldu!\n\nTransaction: ${result.digest}`);
+      }
+      
+      navigate("/");
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error creating profile:", error);
+      const errorMsg = (error as Error).message || String(error);
+      
+      if (errorMsg.includes("ENameAlreadyTaken")) {
+        alert("❌ Username zaten kullanılıyor! Başka bir tane seçin.");
+      } else {
+        alert(`❌ Profil oluşturulamadı: ${errorMsg}`);
+      }
+      
       setLoading(false);
     }
   };
 
   const handleUpdateProfile = async () => {
-    if (!objectId || !account?.address) return;
+    if (!objectId || !userAddress) return;
 
     setLoading(true);
     try {
@@ -413,11 +417,11 @@ export function ProfileEditor(props?: ProfileEditorProps) {
     }
   };
 
-  if (!account) {
+  if (!userAddress) {
     return (
       <Container size="2" mt="9">
         <Card>
-          <Text>Please connect your wallet to continue</Text>
+          <Text>Please connect your wallet or sign in with Google to continue</Text>
         </Card>
       </Container>
     );

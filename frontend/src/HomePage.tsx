@@ -1,4 +1,5 @@
 import { useCurrentAccount, useSuiClient } from "@mysten/dapp-kit";
+import { useZkLogin } from "@mysten/enoki/react";
 import { Button, Card, Container, Flex, Heading, Text } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -6,27 +7,31 @@ import { LinkTreeProfile } from "./types";
 
 export function HomePage() {
   const account = useCurrentAccount();
+  const zkLogin = useZkLogin();
   const suiClient = useSuiClient();
   const navigate = useNavigate();
   const [ownedProfiles, setOwnedProfiles] = useState<LinkTreeProfile[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Hem normal cüzdan hem zkLogin kontrolü
+  const userAddress = account?.address || zkLogin.address;
+
   useEffect(() => {
-    if (account?.address) {
+    if (userAddress) {
       loadOwnedProfiles();
     } else {
       setOwnedProfiles([]);
     }
-  }, [account?.address]);
+  }, [userAddress]);
 
   const loadOwnedProfiles = async () => {
-    if (!account?.address) return;
+    if (!userAddress) return;
     
     setLoading(true);
     try {
       // Get all objects owned by the user
       const objects = await suiClient.getOwnedObjects({
-        owner: account.address,
+        owner: userAddress,
         options: {
           showContent: true,
           showType: true,
@@ -66,7 +71,7 @@ export function HomePage() {
     }
   };
 
-  if (!account) {
+  if (!userAddress) {
     return (
       <Container size="2" mt="9">
         <Card>
@@ -76,7 +81,7 @@ export function HomePage() {
               Create your decentralized link-in-bio page on Sui
             </Text>
             <Text size="2" color="gray">
-              Connect your wallet to get started
+              Connect your wallet or sign in with Google to get started
             </Text>
           </Flex>
         </Card>
