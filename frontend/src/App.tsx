@@ -135,7 +135,7 @@ function AdminDashboardSite() {
 // Main App - decides which site to show
 function App() {
   const { mode, username } = useSubdomainDetection();
-  const { handled } = useAuthCallback();
+  useAuthCallback(); // Enoki callback'ini tetikle ama sonucunu kullanma
   const [isProcessingAuth, setIsProcessingAuth] = useState(false);
 
   // OAuth callback'ten döndükten sonra URL'i temizle
@@ -146,19 +146,20 @@ function App() {
     if (hash.includes('id_token')) {
       setIsProcessingAuth(true);
       
-      // 2 saniye bekle (Enoki'nin token'ı işlemesi için)
+      // Kısa süre bekle (Enoki'nin token'ı işlemesi için)
       const timer = setTimeout(() => {
-        // URL'i tamamen temizle (# karakteri olmadan)
-        window.history.replaceState(null, '', window.location.pathname);
+        // HashRouter kullandığımız için # karakterini koruyalım
+        window.location.hash = '#/';
         setIsProcessingAuth(false);
-      }, 2000);
+      }, 1500);
       
       return () => clearTimeout(timer);
     }
   }, []);
 
   // OAuth callback'ten dönüldüğünde gösterilecek loading ekranı
-  if (handled || isProcessingAuth) {
+  // NOT: 'handled' kullanmıyoruz çünkü sürekli true kalabiliyor
+  if (isProcessingAuth) {
     return (
       <Container size="2" mt="9">
         <Card>
