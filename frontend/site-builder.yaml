@@ -4,6 +4,5 @@ portal: "https://walrus.site"
 walrus_binary: "walrus"
 walrus_config: "~/.config/walrus/client_config.yaml"
 wallet: "~/.sui/sui_config/client.yaml"
-rpc_url: "https://rpc-testnet.suiscan.xyz:443"
 gas_budget: 1000000000
 
