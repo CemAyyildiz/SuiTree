@@ -46,13 +46,29 @@ export function ProfileView() {
 
       if (response.data?.content && "fields" in response.data.content) {
         const content = response.data.content as any;
+        
+        // Debug: Log raw data
+        console.log("Profile raw data:", content.fields);
+        console.log("Links raw data:", content.fields.links);
+        
+        // Parse links and ensure they have all required fields
+        const rawLinks = content.fields.links || [];
+        const parsedLinks = rawLinks.map((link: any) => ({
+          label: link.label || link.fields?.label || "",
+          url: link.url || link.fields?.url || "",
+          is_premium: link.is_premium ?? link.fields?.is_premium ?? false,
+          price: String(link.price ?? link.fields?.price ?? "0"),
+        }));
+        
+        console.log("Parsed links:", parsedLinks);
+        
         const profileData: LinkTreeProfile = {
           id: { id: response.data.objectId },
           owner: content.fields.owner,
           title: content.fields.title,
           avatar_cid: content.fields.avatar_cid,
           bio: content.fields.bio,
-          links: content.fields.links || [],
+          links: parsedLinks,
           theme: content.fields.theme || {
             background_color: "#ffffff",
             text_color: "#000000",
@@ -248,6 +264,11 @@ export function ProfileView() {
 
           {/* Links */}
           <Flex direction="column" gap="3" style={{ width: "100%", maxWidth: "500px" }}>
+            {profile.links.length === 0 && (
+              <Text size="2" color="gray" style={{ textAlign: "center" }}>
+                No links added yet
+              </Text>
+            )}
             {profile.links.map((link, index) => {
               const isPremium = link.is_premium;
               const hasUserAccess = hasAccess[index] || !isPremium;
