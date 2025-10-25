@@ -39,6 +39,9 @@ export function ProfileEditor(props?: ProfileEditorProps) {
 
   // Hem normal cüzdan hem zkLogin kontrolü
   const userAddress = account?.address || zkLogin.address;
+  
+  // Sponsor logic: zkLogin varsa sponsor, wallet varsa normal
+  const useSponsoredTx = !!zkLogin.address && !account?.address;
 
   // Form state
   const [title, setTitle] = useState("");
@@ -103,7 +106,10 @@ export function ProfileEditor(props?: ProfileEditorProps) {
   };
 
   const handleCreateProfile = async () => {
-    if (!userAddress) return;
+    if (!userAddress) {
+      alert("❌ Lütfen önce cüzdan bağlayın veya Google ile giriş yapın!");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -119,12 +125,63 @@ export function ProfileEditor(props?: ProfileEditorProps) {
         ],
       });
 
-      // Execute transaction
-      console.log('🚀 İşlem gönderiliyor...');
+      let result: any;
       
-      const result = await signAndExecuteTransaction({
-        transaction: tx,
-      });
+      // 🎁 Sponsored transaction for zkLogin
+      if (useSponsoredTx) {
+        console.log('🎁 Using sponsored transaction (zkLogin)...');
+        try {
+          const transactionBytes = await tx.build({ client: suiClient as any });
+          
+          const sponsorResponse = await fetch('http://localhost:3001/api/sponsor-transaction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              transactionBytes: transactionBytes,
+              sender: userAddress,
+            }),
+          });
+
+          const sponsorData = await sponsorResponse.json();
+
+          if (!sponsorData.success) {
+            throw new Error(sponsorData.error || 'Failed to sponsor transaction');
+          }
+
+          console.log('✅ Transaction sponsored!', sponsorData);
+          
+          // Execute sponsored transaction
+          const executeResponse = await fetch('http://localhost:3001/api/execute-sponsored-transaction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              digest: sponsorData.sponsoredTransaction.transactionDigest,
+              signature: sponsorData.sponsoredTransaction.userSignature,
+            }),
+          });
+          
+          const executeData = await executeResponse.json();
+          
+          if (!executeData.success) {
+            throw new Error(executeData.error || 'Failed to execute sponsored transaction');
+          }
+          
+          result = { digest: executeData.result.digest };
+          alert('🎉 Profil oluşturuldu! Gas sponsored by backend!');
+        } catch (sponsorError) {
+          console.error('⚠️ Sponsored tx failed:', sponsorError);
+          alert('❌ Sponsored transaction failed. Please try again.');
+          setLoading(false);
+          return;
+        }
+      } else {
+        // Normal wallet transaction
+        console.log('🚀 İşlem gönderiliyor (normal wallet)...');
+        
+        result = await signAndExecuteTransaction({
+          transaction: tx,
+        });
+      }
 
       console.log("✅ Profile created successfully!", result.digest);
       
@@ -303,22 +360,59 @@ export function ProfileEditor(props?: ProfileEditorProps) {
         arguments: args,
       });
 
-      signAndExecuteTransaction(
-        {
-          transaction: tx,
-        },
-        {
-          onSuccess: () => {
-            console.log("Link added successfully!");
-            loadProfile();
-          },
-          onError: (error) => {
-            console.error("Error adding link:", error);
-            alert("Failed to add link");
-            setLoading(false);
-          },
+      // 🎁 Sponsored Transaction sadece zkLogin için
+      if (useSponsoredTx) {
+        console.log('🎁 Sponsoring transaction via backend (zkLogin)...');
+        
+        try {
+          // Transaction'ı serialize et
+          const transactionBytes = await tx.build({ client: suiClient as any });
+          
+          // Backend'e sponsor isteği gönder
+          const sponsorResponse = await fetch('http://localhost:3001/api/sponsor-transaction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              transactionBytes: transactionBytes,
+              sender: userAddress,
+            }),
+          });
+
+          const sponsorData = await sponsorResponse.json();
+
+          if (!sponsorData.success) {
+            throw new Error(sponsorData.error || 'Failed to sponsor transaction');
+          }
+
+          console.log('✅ Transaction sponsored!', sponsorData);
+          alert('🎉 Link added! Gas sponsored by backend!');
+          loadProfile();
+          setLoading(false);
+        } catch (sponsorError) {
+          console.error('⚠️ Sponsored tx failed:', sponsorError);
+          alert('❌ Sponsored transaction failed. Please try again.');
+          setLoading(false);
         }
-      );
+      } else {
+        // Normal wallet transaction
+        console.log('💰 Using normal wallet transaction...');
+        signAndExecuteTransaction(
+          {
+            transaction: tx,
+          },
+          {
+            onSuccess: () => {
+              console.log("Link added successfully!");
+              loadProfile();
+            },
+            onError: (error) => {
+              console.error("Error adding link:", error);
+              alert("Failed to add link");
+              setLoading(false);
+            },
+          }
+        );
+      }
     } catch (error) {
       console.error("Error:", error);
       setLoading(false);
