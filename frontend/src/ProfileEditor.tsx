@@ -120,11 +120,62 @@ export function ProfileEditor(props?: ProfileEditorProps) {
         ],
       });
 
-      console.log('🚀 Sending transaction...');
+      // Check if this is an Enoki wallet (zkLogin) - they need sponsored transactions
+      const isEnokiWallet = account?.chains?.some(chain => 
+        chain.includes('enoki')
+      ) || (account?.address?.startsWith('0x') && account?.address.length > 40);
+
+      let result: any;
       
-      const result = await signAndExecuteTransaction({
-        transaction: tx,
-      });
+      if (isEnokiWallet) {
+        console.log('🎁 Using backend sponsored transaction for zkLogin wallet...');
+        try {
+          // 1. Build transaction bytes
+          const transactionBytes = await tx.build({ client: suiClient as any });
+          console.log('📦 Transaction built');
+          
+          // Convert Uint8Array to hex string
+          const hexString = Array.from(transactionBytes)
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+          
+          // 2. Send to backend to sponsor and execute
+          console.log('📤 Sending to backend for sponsored execution...');
+          const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+          const response = await fetch(`${backendUrl}/api/sponsor-and-execute-transaction`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              transactionBytes: hexString,
+              sender: userAddress,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (!data.success) {
+            throw new Error(data.error || 'Failed to sponsor and execute transaction');
+          }
+
+          console.log('✅ Transaction sponsored and executed by backend!');
+          console.log('Digest:', data.digest);
+          
+          result = { digest: data.digest };
+          alert('🎉 Profil oluşturuldu! Gas ücretini biz ödedik! 🎁');
+        } catch (sponsorError) {
+          console.error('⚠️ Sponsored tx failed:', sponsorError);
+          alert('❌ İşlem başarısız: ' + (sponsorError as Error).message);
+          setLoading(false);
+          return;
+        }
+      } else {
+        // Normal wallet transaction
+        console.log('🚀 Sending transaction (normal wallet)...');
+        
+        result = await signAndExecuteTransaction({
+          transaction: tx,
+        });
+      }
 
       console.log("✅ Profile created successfully!", result.digest);
       
