@@ -2,12 +2,14 @@ import { useCurrentAccount, useSuiClient, useSignAndExecuteTransaction } from "@
 import { Transaction } from "@mysten/sui/transactions";
 import { Box, Card, Container, Flex, Heading, Text, Button, Dialog } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
 import { LinkTreeProfile, Link } from "./types";
 import { PACKAGE_ID, MODULE_NAME } from "./constants";
 
-export function ProfileView() {
-  const { objectId } = useParams<{ objectId: string }>();
+interface ProfileViewProps {
+  objectId: string;
+}
+
+export function ProfileView({ objectId }: ProfileViewProps) {
   const suiClient = useSuiClient();
   const account = useCurrentAccount();
   const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
@@ -263,7 +265,7 @@ export function ProfileView() {
           )}
 
           {/* Debug Info (Remove in production) */}
-          {process.env.NODE_ENV === 'development' && (
+          {import.meta.env.DEV && (
             <Card style={{ background: "#333", padding: "10px", marginBottom: "10px" }}>
               <Text size="1" style={{ color: "#fff" }}>
                 Debug: {profile.links.length} links found

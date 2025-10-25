@@ -20,8 +20,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import { PACKAGE_ID, MODULE_NAME, REGISTRY_ID } from "./constants";
 import { Link, LinkTreeProfile } from "./types";
 
-export function ProfileEditor() {
-  const { objectId } = useParams<{ objectId?: string }>();
+interface ProfileEditorProps {
+  objectId?: string;
+}
+
+export function ProfileEditor(props?: ProfileEditorProps) {
+  const params = useParams<{ objectId?: string }>();
+  const objectId = props?.objectId || params.objectId;
   const account = useCurrentAccount();
   const suiClient = useSuiClient();
   const navigate = useNavigate();
@@ -168,10 +173,11 @@ export function ProfileEditor() {
         {
           onSuccess: (result) => {
             console.log("Profile created successfully!", result);
-            const msg = username 
-              ? `Profile created! Your link: suitree.com/${username}`
-              : "Profile created successfully!";
-            alert(msg);
+            if (username) {
+              alert(`Profile created!\n\nYour public link:\n${username}.suitree.walrus.site`);
+            } else {
+              alert("Profile created successfully!");
+            }
             navigate("/");
           },
           onError: (error) => {

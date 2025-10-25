@@ -2,12 +2,14 @@ import { useCurrentAccount, useSuiClient, useSignAndExecuteTransaction } from "@
 import { Transaction } from "@mysten/sui/transactions";
 import { Box, Card, Container, Flex, Heading, Text, Button, Dialog } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
 import { PACKAGE_ID, MODULE_NAME, REGISTRY_ID } from "./constants";
 import { LinkTreeProfile, Link } from "./types";
 
-export function UsernameResolver() {
-  const { username } = useParams<{ username: string }>();
+interface UsernameResolverProps {
+  username: string;
+}
+
+export function UsernameResolver({ username }: UsernameResolverProps) {
   const suiClient = useSuiClient();
   const account = useCurrentAccount();
   const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
@@ -283,7 +285,7 @@ export function UsernameResolver() {
           )}
 
           {/* Debug Info (Development only) */}
-          {process.env.NODE_ENV === 'development' && (
+          {import.meta.env.DEV && (
             <Card style={{ background: "#333", padding: "10px", marginBottom: "10px" }}>
               <Text size="1" style={{ color: "#fff" }}>
                 Debug: @{username} → {profile.links.length} links

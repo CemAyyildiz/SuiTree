@@ -1,0 +1,9 @@
+# Walrus Sites Configuration for Testnet
+package: "0x1b84d94e93e71a8958ac2ae15fb1e4e6ee0e37d7a68e8f85c3dd64df91c08ebc"
+portal: "https://walrus.site"
+walrus_binary: "walrus"
+walrus_config: "~/.config/walrus/client_config.yaml"
+wallet: "~/.sui/sui_config/client.yaml"
+rpc_url: "https://rpc-testnet.suiscan.xyz:443"
+gas_budget: 1000000000
+
