@@ -35,19 +35,8 @@ export function ProfileEditor(props?: ProfileEditorProps) {
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<LinkTreeProfile | null>(null);
   
-  // zkLogin address'i localStorage'dan oku
-  const [zkLoginAddress, setZkLoginAddress] = useState<string | null>(null);
-  
-  useEffect(() => {
-    const savedAddress = localStorage.getItem('zkLoginAddress');
-    setZkLoginAddress(savedAddress);
-  }, []);
-
-  // Hem normal cüzdan hem zkLogin kontrolü
-  const userAddress = account?.address || zkLoginAddress;
-  
-  // Sponsor logic: zkLogin varsa sponsor, wallet varsa normal
-  const useSponsoredTx = !!zkLoginAddress && !account?.address;
+  // User address from connected wallet (includes Enoki wallets)
+  const userAddress = account?.address;
 
   // Form state
   const [title, setTitle] = useState("");
@@ -113,7 +102,7 @@ export function ProfileEditor(props?: ProfileEditorProps) {
 
   const handleCreateProfile = async () => {
     if (!userAddress) {
-      alert("❌ Lütfen önce cüzdan bağlayın veya Google ile giriş yapın!");
+      alert("❌ Please connect your wallet first!");
       return;
     }
 
@@ -131,57 +120,11 @@ export function ProfileEditor(props?: ProfileEditorProps) {
         ],
       });
 
-      let result: any;
+      console.log('🚀 Sending transaction...');
       
-      // 🎁 Sponsored transaction for zkLogin
-      if (useSponsoredTx) {
-        console.log('🎁 Using sponsored transaction (zkLogin)...');
-        try {
-          // 1. Build transaction bytes
-          const transactionBytes = await tx.build({ client: suiClient as any });
-          console.log('📦 Transaction built');
-          
-          // Convert Uint8Array to hex string
-          const hexString = Array.from(transactionBytes)
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
-          
-          // 2. Send to backend to sponsor and execute
-          console.log('📤 Sending to backend for sponsored execution...');
-          const response = await fetch('http://localhost:3001/api/sponsor-and-execute-transaction', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              transactionBytes: hexString,
-              sender: userAddress,
-            }),
-          });
-
-          const data = await response.json();
-
-          if (!data.success) {
-            throw new Error(data.error || 'Failed to sponsor and execute transaction');
-          }
-
-          console.log('✅ Transaction sponsored and executed by backend!');
-          console.log('Digest:', data.digest);
-          
-          result = { digest: data.digest };
-          alert('🎉 Profil oluşturuldu! Gas ücretini biz ödedik! 🎁');
-        } catch (sponsorError) {
-          console.error('⚠️ Sponsored tx failed:', sponsorError);
-          alert('❌ İşlem başarısız: ' + (sponsorError as Error).message);
-          setLoading(false);
-          return;
-        }
-      } else {
-        // Normal wallet transaction
-        console.log('🚀 İşlem gönderiliyor (normal wallet)...');
-        
-        result = await signAndExecuteTransaction({
-          transaction: tx,
-        });
-      }
+      const result = await signAndExecuteTransaction({
+        transaction: tx,
+      });
 
       console.log("✅ Profile created successfully!", result.digest);
       
@@ -360,68 +303,22 @@ export function ProfileEditor(props?: ProfileEditorProps) {
         arguments: args,
       });
 
-      // 🎁 Sponsored Transaction sadece zkLogin için
-      if (useSponsoredTx) {
-        console.log('🎁 Sponsoring transaction via backend (zkLogin)...');
-        
-        try {
-          // 1. Build transaction bytes
-          const transactionBytes = await tx.build({ client: suiClient as any });
-          console.log('📦 Transaction built');
-          
-          // Convert Uint8Array to hex string
-          const hexString = Array.from(transactionBytes)
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
-          
-          // 2. Send to backend to sponsor and execute
-          console.log('📤 Sending to backend for sponsored execution...');
-          const response = await fetch('http://localhost:3001/api/sponsor-and-execute-transaction', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              transactionBytes: hexString,
-              sender: userAddress,
-            }),
-          });
-
-          const data = await response.json();
-
-          if (!data.success) {
-            throw new Error(data.error || 'Failed to sponsor and execute transaction');
-          }
-
-          console.log('✅ Transaction sponsored and executed by backend!');
-          console.log('Digest:', data.digest);
-          
-          alert('🎉 Link eklendi! Gas ücretini biz ödedik! 🎁');
-          loadProfile();
-          setLoading(false);
-        } catch (sponsorError) {
-          console.error('⚠️ Sponsored tx failed:', sponsorError);
-          alert('❌ İşlem başarısız: ' + (sponsorError as Error).message);
-          setLoading(false);
-        }
-      } else {
-        // Normal wallet transaction
-        console.log('💰 Using normal wallet transaction...');
-        signAndExecuteTransaction(
-          {
-            transaction: tx,
+      signAndExecuteTransaction(
+        {
+          transaction: tx,
+        },
+        {
+          onSuccess: () => {
+            console.log("Link added successfully!");
+            loadProfile();
           },
-          {
-            onSuccess: () => {
-              console.log("Link added successfully!");
-              loadProfile();
-            },
-            onError: (error) => {
-              console.error("Error adding link:", error);
-              alert("Failed to add link");
-              setLoading(false);
-            },
-          }
-        );
-      }
+          onError: (error) => {
+            console.error("Error adding link:", error);
+            alert("Failed to add link");
+            setLoading(false);
+          },
+        }
+      );
     } catch (error) {
       console.error("Error:", error);
       setLoading(false);
@@ -516,7 +413,7 @@ export function ProfileEditor(props?: ProfileEditorProps) {
     return (
       <Container size="2" mt="9">
         <Card>
-          <Text>Please connect your wallet or sign in with Google to continue</Text>
+          <Text>Please connect your wallet to continue (including Google via Enoki)</Text>
         </Card>
       </Container>
     );

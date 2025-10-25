@@ -11,16 +11,8 @@ export function HomePage() {
   const [ownedProfiles, setOwnedProfiles] = useState<LinkTreeProfile[]>([]);
   const [loading, setLoading] = useState(false);
   
-  // zkLogin address'i localStorage'dan oku
-  const [zkLoginAddress, setZkLoginAddress] = useState<string | null>(null);
-  
-  useEffect(() => {
-    const savedAddress = localStorage.getItem('zkLoginAddress');
-    setZkLoginAddress(savedAddress);
-  }, []);
-
-  // Hem normal cüzdan hem zkLogin kontrolü
-  const userAddress = account?.address || zkLoginAddress;
+  // User address from connected wallet (includes Enoki wallets)
+  const userAddress = account?.address;
 
   useEffect(() => {
     if (userAddress) {
@@ -87,7 +79,7 @@ export function HomePage() {
               Create your decentralized link-in-bio page on Sui
             </Text>
             <Text size="2" color="gray">
-              Connect your wallet or sign in with Google to get started
+              Connect your wallet to get started (including Google via Enoki)
             </Text>
           </Flex>
         </Card>

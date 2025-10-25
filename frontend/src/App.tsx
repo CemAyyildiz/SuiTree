@@ -6,9 +6,6 @@ import { HomePage } from "./HomePage";
 import { ProfileEditor } from "./ProfileEditor";
 import { ProfileView } from "./ProfileView";
 import { UsernameResolver } from "./UsernameResolver";
-import { ZkLoginButton } from "./ZkLoginButton";
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
 // Wrapper to get objectId from route params
 function ProfileViewWrapper() {
@@ -153,7 +150,6 @@ function AdminDashboardSite() {
         </Box>
 
         <Flex gap="3" align="center">
-          <ZkLoginButton />
           <ConnectButton />
         </Flex>
       </Flex>
@@ -172,96 +168,6 @@ function AdminDashboardSite() {
 // Main App - decides which site to show
 function App() {
   const { mode, username } = useSubdomainDetection();
-  const [isProcessingAuth, setIsProcessingAuth] = useState(false);
-  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
-
-  // OAuth callback'i backend üzerinden handle et
-  useEffect(() => {
-    const handleOAuthCallback = async () => {
-      const hash = window.location.hash;
-      const fullUrl = window.location.href;
-      
-      console.log('🔍 Checking URL for OAuth callback...');
-      console.log('Full URL:', fullUrl);
-      console.log('Hash:', hash);
-      
-      // URL'den id_token'ı çıkar - hem query string hem hash'ten kontrol et
-      let idToken = null;
-      
-      // Query string'den kontrol et
-      if (fullUrl.includes('?')) {
-        const urlParams = new URLSearchParams(fullUrl.split('?')[1]);
-        idToken = urlParams.get('id_token');
-      }
-      
-      // Hash'ten kontrol et - hash'te # ile başlıyor
-      if (!idToken && hash.includes('id_token=')) {
-        // Hash'ten # işaretini kaldır ve URLSearchParams ile parse et
-        const hashWithoutSharp = hash.substring(1); // # işaretini kaldır
-        const hashParams = new URLSearchParams(hashWithoutSharp);
-        idToken = hashParams.get('id_token');
-      }
-      
-      if (idToken && !hasCheckedAuth) {
-        console.log('🔐 OAuth callback detected! id_token found');
-        setIsProcessingAuth(true);
-        setHasCheckedAuth(true);
-        
-        try {
-          // Backend'e id_token gönder ve zkLogin address al
-          console.log('📞 Sending id_token to backend...');
-          const response = await fetch(`${BACKEND_URL}/api/handle-google-callback`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken }),
-          });
-
-          const data = await response.json();
-
-          if (data.success && data.address) {
-            console.log('✅ zkLogin address received:', data.address);
-            
-            // LocalStorage'a kaydet
-            localStorage.setItem('zkLoginAddress', data.address);
-            localStorage.setItem('zkLoginSession', JSON.stringify(data.session));
-            
-            // URL'i temizle ve ana sayfaya yönlendir
-            console.log('🧹 Cleaning up URL and redirecting...');
-            window.history.replaceState(null, '', window.location.origin + '/#/');
-            
-            // Sayfayı yenile
-            window.location.reload();
-          } else {
-            throw new Error(data.error || 'Failed to get zkLogin address');
-          }
-        } catch (error) {
-          console.error('❌ Error handling OAuth callback:', error);
-          alert('Giriş başarısız: ' + (error as Error).message);
-          
-          // URL'i temizle
-          window.history.replaceState(null, '', window.location.origin + '/#/');
-          setIsProcessingAuth(false);
-        }
-      }
-    };
-    
-    handleOAuthCallback();
-  }, [hasCheckedAuth]);
-
-  // OAuth callback'ten dönüldüğünde gösterilecek loading ekranı
-  // NOT: 'handled' kullanmıyoruz çünkü sürekli true kalabiliyor
-  if (isProcessingAuth) {
-    return (
-      <Container size="2" mt="9">
-        <Card>
-          <Flex direction="column" align="center" gap="3" py="6">
-            <Text size="5">⏳ Google ile giriş yapılıyor...</Text>
-            <Text size="2" color="gray">Lütfen bekleyin</Text>
-          </Flex>
-        </Card>
-      </Container>
-    );
-  }
 
   // Loading
   if (mode === "loading") {
