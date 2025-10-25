@@ -6,6 +6,7 @@ import { HomePage } from "./HomePage";
 import { ProfileEditor } from "./ProfileEditor";
 import { ProfileView } from "./ProfileView";
 import { UsernameResolver } from "./UsernameResolver";
+import { ZkLoginButton } from "./ZkLoginButton";
 
 // Wrapper to get objectId from route params
 function ProfileViewWrapper() {
@@ -113,9 +114,10 @@ function AdminDashboardSite() {
           </Link>
         </Box>
 
-        <Box>
+        <Flex gap="3" align="center">
+          <ZkLoginButton />
           <ConnectButton />
-        </Box>
+        </Flex>
       </Flex>
 
       {/* Admin routes */}
