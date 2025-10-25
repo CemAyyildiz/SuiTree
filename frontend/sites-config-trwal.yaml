@@ -14,6 +14,12 @@ contexts:
        walrus_binary: /Users/cemayyildiz/.local/bin/walrus
        walrus_config: /Users/cemayyildiz/.config/walrus/client_config.yaml
        gas_budget: 10000000
+    # Subdomain routing configuration
+    routes:
+      - pattern: "*.suitree.trwal.app"
+        target: "/profile"
+        params:
+          username: "{subdomain}"
   mainnet:
     # TRWal portal mainnet
     portal: wal.app

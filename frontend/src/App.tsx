@@ -42,6 +42,16 @@ function useSubdomainDetection() {
       }
     }
     
+    // Check for Walrus subdomains (e.g., username.suitree.trwal.app)
+    if (hostname.endsWith('.suitree.trwal.app')) {
+      const subdomain = parts[0];
+      if (subdomain && subdomain !== 'suitree') {
+        setUsername(subdomain);
+        setMode('profile');
+        return;
+      }
+    }
+    
     // Check if subdomain is a Walrus B36 ID (43 characters)
     const subdomain = parts[0];
     if (subdomain && subdomain.length >= 40) {
