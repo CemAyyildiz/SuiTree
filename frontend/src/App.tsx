@@ -22,6 +22,7 @@ function useSubdomainDetection() {
 
   useEffect(() => {
     const hostname = window.location.hostname;
+    const pathname = window.location.pathname;
     
     // Exact localhost or 127.0.0.1 → admin mode
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
@@ -43,13 +44,6 @@ function useSubdomainDetection() {
       }
     }
     
-    // For production domains (e.g., suitree.walrus.site or 65bptoh2u9od2...trwal.app)
-    // Main domain or www → admin mode
-    if (parts.length <= 2 || parts[0] === 'www' || parts[0] === 'suitree') {
-      setMode('admin');
-      return;
-    }
-
     // Check if subdomain is a Walrus B36 ID (43 characters)
     const subdomain = parts[0];
     if (subdomain && subdomain.length >= 40) {
@@ -57,10 +51,45 @@ function useSubdomainDetection() {
       setMode('admin');
       return;
     }
-
-    // Subdomain detected → profile mode (e.g., cem.suitree.walrus.site)
-    setUsername(subdomain);
-    setMode('profile');
+    
+    // For production domains (suitree.trwal.app or main domain)
+    // If hostname is exactly "suitree.trwal.app" (2 parts after split), it's admin
+    if (parts.length === 2 && parts[1] === 'trwal.app' && parts[0] === 'suitree') {
+      setMode('admin');
+      return;
+    }
+    
+    // If we have 3+ parts and first part is not main domain, it's a subdomain
+    // e.g., cem.suitree.trwal.app (3 parts: cem, suitree, trwal.app)
+    if (parts.length >= 3 && parts[0] !== 'suitree' && parts[0] !== 'www') {
+      // This is a username subdomain
+      setUsername(parts[0]);
+      setMode('profile');
+      return;
+    }
+    
+    // FALLBACK: Check if pathname has a username format
+    // e.g., suitree.trwal.app/cem or suitree.trwal.app/@cem
+    if (pathname && pathname.length > 1) {
+      const pathParts = pathname.split('/');
+      const potentialUsername = pathParts[1];
+      
+      // If it looks like a username (not a hash route like #/profile)
+      if (potentialUsername && 
+          !potentialUsername.startsWith('#') && 
+          potentialUsername.length > 1 && 
+          potentialUsername.length < 30) {
+        // Check if it's a username pattern (letters, numbers, underscore)
+        if (/^[a-zA-Z0-9_]+$/.test(potentialUsername)) {
+          setUsername(potentialUsername);
+          setMode('profile');
+          return;
+        }
+      }
+    }
+    
+    // Default to admin mode for other cases
+    setMode('admin');
   }, []);
 
   return { mode, username };
@@ -202,3 +231,4 @@ function App() {
 }
 
 export default App;
+

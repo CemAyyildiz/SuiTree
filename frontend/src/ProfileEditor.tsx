@@ -109,66 +109,14 @@ export function ProfileEditor(props?: ProfileEditorProps) {
     try {
       const tx = new Transaction();
 
-      // Create profile
-      const [profile] = tx.moveCall({
-        target: `${PACKAGE_ID}::${MODULE_NAME}::create_profile`,
+      // Use mint_profile instead (simpler)
+      tx.moveCall({
+        target: `${PACKAGE_ID}::${MODULE_NAME}::mint_profile`,
         arguments: [
           tx.pure.string(title),
           tx.pure.string(avatarCid),
           tx.pure.string(bio),
         ],
-      });
-
-      // Add links if any
-      links.forEach((link) => {
-        const targetFunction = link.is_premium ? "add_premium_link" : "add_link";
-        const args = link.is_premium
-          ? [
-              profile,
-              tx.pure.string(link.label),
-              tx.pure.string(link.url),
-              tx.pure.u64(link.price),
-            ]
-          : [
-              profile,
-              tx.pure.string(link.label),
-              tx.pure.string(link.url),
-            ];
-
-        tx.moveCall({
-          target: `${PACKAGE_ID}::${MODULE_NAME}::${targetFunction}`,
-          arguments: args,
-        });
-      });
-
-      // Update theme
-      tx.moveCall({
-        target: `${PACKAGE_ID}::${MODULE_NAME}::update_theme`,
-        arguments: [
-          profile,
-          tx.pure.string(backgroundColor),
-          tx.pure.string(textColor),
-          tx.pure.string(buttonColor),
-          tx.pure.string(fontStyle),
-        ],
-      });
-
-      // Register username if provided
-      if (username.trim()) {
-        tx.moveCall({
-          target: `${PACKAGE_ID}::${MODULE_NAME}::register_name`,
-          arguments: [
-            tx.object(REGISTRY_ID),
-            profile,
-            tx.pure.string(username.toLowerCase().trim()),
-          ],
-        });
-      }
-
-      // Transfer to sender
-      tx.moveCall({
-        target: `${PACKAGE_ID}::${MODULE_NAME}::transfer_profile`,
-        arguments: [profile, tx.pure.address(userAddress)],
       });
 
       // Execute transaction
@@ -179,14 +127,58 @@ export function ProfileEditor(props?: ProfileEditorProps) {
       });
 
       console.log("✅ Profile created successfully!", result.digest);
-      setLoading(false);
       
-      if (username) {
-        alert(`🎉 Profil oluşturuldu!\n\nPublic link:\n${username}.suitree.walrus.site\n\nTransaction: ${result.digest}`);
+      // Get the created profile ID from the transaction result
+      // For Sui v0.29+, we need to get the object from the transaction block
+      const txBlock = await suiClient.waitForTransaction({
+        digest: result.digest,
+        options: {
+          showObjectChanges: true,
+        },
+      });
+      
+      const createdProfile = txBlock.objectChanges?.find(
+        (change: any) => change.type === 'created' && change.objectType?.includes('LinkTreeProfile')
+      ) as any;
+      const profileObjectId = createdProfile?.objectId;
+      
+      // Register username in a separate transaction if provided
+      if (username.trim() && profileObjectId) {
+        try {
+          const tx2 = new Transaction();
+          tx2.moveCall({
+            target: `${PACKAGE_ID}::${MODULE_NAME}::register_name`,
+            arguments: [
+              tx2.object(REGISTRY_ID),
+              tx2.object(profileObjectId), // Now we have the real object ID
+              tx2.pure.string(username.toLowerCase().trim()),
+            ],
+          });
+          
+          const result2 = await signAndExecuteTransaction({
+            transaction: tx2,
+          });
+          
+          console.log("✅ Username registered!", result2.digest);
+          alert(`🎉 Profil oluşturuldu!\n\nUsername: @${username}\nPublic link:\n${username}.suitree.walrus.site\n\nTransaction: ${result.digest}`);
+        } catch (usernameError) {
+          console.error("Username registration failed:", usernameError);
+          const errorMsg = (usernameError as Error).message || String(usernameError);
+          if (errorMsg.includes("ENameAlreadyTaken")) {
+            alert(`🎉 Profil oluşturuldu, ancak username "@${username}" zaten alınmış!\n\nTransaction: ${result.digest}`);
+          } else {
+            alert(`🎉 Profil oluşturuldu, ancak username kaydı başarısız: ${errorMsg}\n\nTransaction: ${result.digest}`);
+          }
+        }
       } else {
-        alert(`🎉 Profil oluşturuldu!\n\nTransaction: ${result.digest}`);
+        if (username.trim()) {
+          alert(`⚠️ Profil oluşturuldu, ancak username kaydedilemedi (profil ID bulunamadı)\n\nTransaction: ${result.digest}`);
+        } else {
+          alert(`🎉 Profil oluşturuldu!\n\nTransaction: ${result.digest}`);
+        }
       }
       
+      setLoading(false);
       navigate("/");
     } catch (error) {
       console.error("Error creating profile:", error);
