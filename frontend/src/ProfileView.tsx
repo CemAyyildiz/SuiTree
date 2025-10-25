@@ -2,6 +2,7 @@ import { useCurrentAccount, useSuiClient, useSignAndExecuteTransaction } from "@
 import { Transaction } from "@mysten/sui/transactions";
 import { Box, Card, Container, Flex, Heading, Text, Button, Dialog } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { LinkTreeProfile, Link } from "./types";
 import { PACKAGE_ID, MODULE_NAME } from "./constants";
 
@@ -13,6 +14,7 @@ export function ProfileView({ objectId }: ProfileViewProps) {
   const suiClient = useSuiClient();
   const account = useCurrentAccount();
   const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<LinkTreeProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -408,6 +410,39 @@ export function ProfileView({ objectId }: ProfileViewProps) {
           <Text size="1" style={{ color: theme.text_color, opacity: 0.6 }}>
             {profile.view_count} views
           </Text>
+
+          {/* Action Buttons */}
+          <Flex gap="3" mt="4">
+            <Button
+              size="2"
+              style={{
+                backgroundColor: theme.button_color,
+                color: "white",
+                border: "none",
+              }}
+              onClick={() => {
+                // Copy current URL to clipboard
+                navigator.clipboard.writeText(window.location.href);
+                alert("Profile link copied to clipboard!");
+              }}
+            >
+              📋 Copy Link
+            </Button>
+            
+            {account?.address === profile.owner && (
+              <Button
+                size="2"
+                variant="outline"
+                style={{
+                  borderColor: theme.button_color,
+                  color: theme.button_color,
+                }}
+                onClick={() => navigate(`/edit/${objectId}`)}
+              >
+                ✏️ Edit Profile
+              </Button>
+            )}
+          </Flex>
 
           {/* Footer */}
           <Text size="1" style={{ color: theme.text_color, opacity: 0.5, marginTop: "2rem" }}>

@@ -13,7 +13,7 @@ contexts:
        wallet: /Users/cemayyildiz/.sui/sui_config/client.yaml
        walrus_binary: /Users/cemayyildiz/.local/bin/walrus
        walrus_config: /Users/cemayyildiz/.config/walrus/client_config.yaml
-       gas_budget: 10000000
+       gas_budget: 5000000
     # Subdomain routing configuration
     routes:
       - pattern: "*.suitree.trwal.app"
@@ -34,7 +34,7 @@ contexts:
        wallet: /Users/cemayyildiz/.sui/sui_config/client.yaml
        walrus_binary: /Users/cemayyildiz/.local/bin/walrus
        walrus_config: /Users/cemayyildiz/.config/walrus/client_config.yaml
-       gas_budget: 10000000
+       gas_budget: 5000000
 
 default_context: testnet
 
