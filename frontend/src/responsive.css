@@ -1,0 +1,208 @@
+/* Responsive styles for Modern Profile View */
+
+.profile-container {
+  width: 100%;
+  max-width: 420px;
+  background-color: white;
+  border-radius: 16px;
+  padding: 40px 32px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+  margin: 0 auto;
+}
+
+/* Tablet styles */
+@media (max-width: 768px) {
+  .profile-container {
+    max-width: 380px;
+    padding: 32px 24px;
+    margin: 20px;
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 480px) {
+  .profile-container {
+    max-width: 100%;
+    padding: 28px 20px;
+    margin: 16px;
+    border-radius: 12px;
+  }
+}
+
+/* Small mobile styles */
+@media (max-width: 360px) {
+  .profile-container {
+    padding: 24px 16px;
+    margin: 12px;
+  }
+}
+
+/* Profile picture responsive */
+.profile-picture {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  margin-bottom: 8px;
+}
+
+@media (max-width: 480px) {
+  .profile-picture {
+    width: 120px;
+    height: 120px;
+  }
+}
+
+@media (max-width: 360px) {
+  .profile-picture {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+/* Link buttons responsive */
+.link-button {
+  border-radius: 12px;
+  padding: 18px 24px;
+  transition: all 0.2s ease;
+}
+
+@media (max-width: 480px) {
+  .link-button {
+    padding: 16px 20px;
+  }
+}
+
+@media (max-width: 360px) {
+  .link-button {
+    padding: 14px 16px;
+  }
+}
+
+/* Action buttons responsive */
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  width: 100%;
+}
+
+@media (max-width: 480px) {
+  .action-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+.action-button {
+  flex: 1;
+  min-width: 140px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+@media (max-width: 480px) {
+  .action-button {
+    min-width: auto;
+    width: 100%;
+  }
+}
+
+/* Typography responsive */
+.profile-name {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0 0 8px 0;
+}
+
+@media (max-width: 480px) {
+  .profile-name {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 360px) {
+  .profile-name {
+    font-size: 22px;
+  }
+}
+
+.profile-bio {
+  font-size: 16px;
+  line-height: 1.5;
+  margin-bottom: 24px;
+  max-width: 300px;
+}
+
+@media (max-width: 480px) {
+  .profile-bio {
+    font-size: 15px;
+    max-width: 280px;
+  }
+}
+
+@media (max-width: 360px) {
+  .profile-bio {
+    font-size: 14px;
+    max-width: 260px;
+  }
+}
+
+/* Social icons responsive */
+.social-icons {
+  margin-bottom: 32px;
+}
+
+@media (max-width: 480px) {
+  .social-icons {
+    margin-bottom: 28px;
+  }
+}
+
+/* Link text responsive */
+.link-text {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+@media (max-width: 480px) {
+  .link-text {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 360px) {
+  .link-text {
+    font-size: 14px;
+  }
+}
+
+/* Link icon responsive */
+.link-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .link-icon {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+@media (max-width: 360px) {
+  .link-icon {
+    width: 36px;
+    height: 36px;
+  }
+}

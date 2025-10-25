@@ -72,13 +72,13 @@ export function HomePage() {
   if (!userAddress) {
     return (
       <Container size="2" mt="9">
-        <Card>
+        <Card style={{ backgroundColor: "white", boxShadow: "0 10px 25px rgba(0,0,0,0.1)" }}>
           <Flex direction="column" align="center" gap="4" py="9">
-            <Heading size="8">🌳 SuiTree</Heading>
-            <Text size="3" color="gray">
+            <Heading size="8" style={{ color: "#1f2937", fontWeight: "700" }}>🌳 SuiTree</Heading>
+            <Text size="3" style={{ color: "#6b7280", fontWeight: "500" }}>
               Create your decentralized link-in-bio page on Sui
             </Text>
-            <Text size="2" color="gray">
+            <Text size="2" style={{ color: "#9ca3af", fontWeight: "500" }}>
               Connect your wallet to get started (including Google via Enoki)
             </Text>
           </Flex>
@@ -91,23 +91,23 @@ export function HomePage() {
     <Container size="3" mt="5">
       <Flex direction="column" gap="4">
         <Flex justify="between" align="center">
-          <Heading size="6">My Profiles</Heading>
-          <Button onClick={() => navigate("/create")} size="3">
+          <Heading size="6" style={{ color: "#1f2937", fontWeight: "700" }}>My Profiles</Heading>
+          <Button onClick={() => navigate("/create")} size="3" style={{ backgroundColor: "#3b82f6", fontWeight: "600" }}>
             + Create New Profile
           </Button>
         </Flex>
 
         {loading ? (
-          <Card>
-            <Text>Loading profiles...</Text>
+          <Card style={{ backgroundColor: "white", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
+            <Text style={{ color: "#6b7280", fontWeight: "500" }}>Loading profiles...</Text>
           </Card>
         ) : ownedProfiles.length === 0 ? (
-          <Card>
+          <Card style={{ backgroundColor: "white", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
             <Flex direction="column" align="center" gap="3" py="6">
-              <Text size="3" color="gray">
+              <Text size="3" style={{ color: "#6b7280", fontWeight: "500" }}>
                 You don't have any profiles yet
               </Text>
-              <Button onClick={() => navigate("/create")} size="2">
+              <Button onClick={() => navigate("/create")} size="2" style={{ backgroundColor: "#3b82f6", fontWeight: "600" }}>
                 Create Your First Profile
               </Button>
             </Flex>
@@ -115,14 +115,14 @@ export function HomePage() {
         ) : (
           <Flex direction="column" gap="3">
             {ownedProfiles.map((profile) => (
-              <Card key={profile.id.id}>
+              <Card key={profile.id.id} style={{ backgroundColor: "white", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
                 <Flex justify="between" align="center">
                   <Flex direction="column" gap="1">
-                    <Heading size="4">{profile.title}</Heading>
-                    <Text size="2" color="gray">
+                    <Heading size="4" style={{ color: "#1f2937", fontWeight: "600" }}>{profile.title}</Heading>
+                    <Text size="2" style={{ color: "#6b7280", fontWeight: "500" }}>
                       {profile.bio}
                     </Text>
-                    <Text size="1" color="gray">
+                    <Text size="1" style={{ color: "#9ca3af", fontWeight: "500" }}>
                       {profile.links.length} links • {profile.view_count} views
                     </Text>
                   </Flex>
@@ -130,10 +130,14 @@ export function HomePage() {
                     <Button
                       variant="soft"
                       onClick={() => navigate(`/profile/${profile.id.id}`)}
+                      style={{ backgroundColor: "#f3f4f6", color: "#374151", fontWeight: "600" }}
                     >
                       View
                     </Button>
-                    <Button onClick={() => navigate(`/edit/${profile.id.id}`)}>
+                    <Button 
+                      onClick={() => navigate(`/edit/${profile.id.id}`)}
+                      style={{ backgroundColor: "#3b82f6", fontWeight: "600" }}
+                    >
                       Edit
                     </Button>
                   </Flex>
