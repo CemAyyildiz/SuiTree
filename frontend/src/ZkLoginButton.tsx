@@ -22,11 +22,9 @@ export function ZkLoginButton() {
       const authUrl = await enokiFlow.createAuthorizationURL({
         provider: 'google',
         clientId: googleClientId,
-        redirectUrl: window.location.origin, // Sadece origin, pathname yok (HashRouter kullandığımız için)
+        redirectUrl: window.location.origin,
         network: 'testnet',
       });
-
-      console.log('Google OAuth URL:', authUrl);
       
       // Google OAuth'a yönlendir
       window.location.href = authUrl;

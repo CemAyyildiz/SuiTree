@@ -136,9 +136,29 @@ function AdminDashboardSite() {
 function App() {
   const { mode, username } = useSubdomainDetection();
   const { handled } = useAuthCallback();
+  const [isProcessingAuth, setIsProcessingAuth] = useState(false);
+
+  // OAuth callback'ten döndükten sonra URL'i temizle
+  useEffect(() => {
+    const hash = window.location.hash;
+    
+    // Eğer URL'de id_token varsa, işleniyor demektir
+    if (hash.includes('id_token')) {
+      setIsProcessingAuth(true);
+      
+      // 2 saniye bekle (Enoki'nin token'ı işlemesi için)
+      const timer = setTimeout(() => {
+        // URL'i tamamen temizle (# karakteri olmadan)
+        window.history.replaceState(null, '', window.location.pathname);
+        setIsProcessingAuth(false);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   // OAuth callback'ten dönüldüğünde gösterilecek loading ekranı
-  if (handled) {
+  if (handled || isProcessingAuth) {
     return (
       <Container size="2" mt="9">
         <Card>
