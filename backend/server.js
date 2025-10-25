@@ -54,12 +54,46 @@ app.post('/api/sponsor-and-execute-transaction', async (req, res) => {
       transactionBytes.match(/.{1,2}/g).map(byte => parseInt(byte, 16))
     );
 
-    // Enoki ile transaction'ı sponsor et ve execute et
-    const result = await enokiClient.executeSponsoredTransaction({
-      network: 'testnet',
-      transactionKindBytes: txBytes,
-      sender,
+    // Enoki'nin resmi API'sini kullan
+    // 1. Transaction'ı sponsor et
+    const sponsorResponse = await fetch('https://api.enoki.mystenlabs.com/transaction-blocks/sponsor', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.ENOKI_PRIVATE_API_KEY}`,
+      },
+      body: JSON.stringify({
+        network: 'testnet',
+        transactionBlockKindBytes: Array.from(txBytes),
+      }),
     });
+
+    if (!sponsorResponse.ok) {
+      const errorData = await sponsorResponse.json();
+      throw new Error(`Enoki sponsor failed: ${errorData.error || sponsorResponse.statusText}`);
+    }
+
+    const sponsorData = await sponsorResponse.json();
+    console.log('✅ Transaction sponsored by Enoki');
+
+    // 2. Transaction'ı execute et (sponsor-signed transaction)
+    const executeResponse = await fetch('https://api.enoki.mystenlabs.com/transaction-blocks/sponsor/' + sponsorData.digest, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.ENOKI_PRIVATE_API_KEY}`,
+      },
+      body: JSON.stringify({
+        signature: sponsorData.signature, // Enoki'nin sponsor signature'ı
+      }),
+    });
+
+    if (!executeResponse.ok) {
+      const errorData = await executeResponse.json();
+      throw new Error(`Transaction execution failed: ${errorData.error || executeResponse.statusText}`);
+    }
+
+    const result = await executeResponse.json();
 
     console.log('✅ Transaction sponsored and executed successfully!');
     console.log('Digest:', result.digest);
