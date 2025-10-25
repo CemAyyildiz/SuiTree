@@ -39,13 +39,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     return (
-      <motion.button
+      <button
         ref={ref}
         className={cn(baseClasses, variants[variant], sizes[size], className)}
         disabled={disabled || loading}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        transition={{ duration: 0.1 }}
         {...props}
       >
         {loading && (
@@ -58,7 +55,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {leftIcon && !loading && <span className="mr-2">{leftIcon}</span>}
         {children}
         {rightIcon && !loading && <span className="ml-2">{rightIcon}</span>}
-      </motion.button>
+      </button>
     );
   }
 );

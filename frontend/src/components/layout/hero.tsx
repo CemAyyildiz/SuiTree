@@ -95,19 +95,9 @@ export function Hero({
                   size="lg"
                   className="group"
                   onClick={primaryCta.onClick}
-                  asChild={!!primaryCta.href}
                 >
-                  {primaryCta.href ? (
-                    <a href={primaryCta.href}>
-                      {primaryCta.label}
-                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                    </a>
-                  ) : (
-                    <>
-                      {primaryCta.label}
-                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                    </>
-                  )}
+                  {primaryCta.label}
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               )}
               
@@ -116,13 +106,8 @@ export function Hero({
                   variant="outline"
                   size="lg"
                   onClick={secondaryCta.onClick}
-                  asChild={!!secondaryCta.href}
                 >
-                  {secondaryCta.href ? (
-                    <a href={secondaryCta.href}>{secondaryCta.label}</a>
-                  ) : (
-                    secondaryCta.label
-                  )}
+                  {secondaryCta.label}
                 </Button>
               )}
             </motion.div>

@@ -24,7 +24,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               <span className="text-gray-400 dark:text-[#71717A]">{leftIcon}</span>
             </div>
           )}
-          <motion.input
+          <input
             ref={ref}
             type={type}
             className={cn(
@@ -34,8 +34,6 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               error && 'border-red-500 focus:ring-red-500',
               className
             )}
-            whileFocus={{ scale: 1.01 }}
-            transition={{ duration: 0.1 }}
             {...props}
           />
           {rightIcon && (

@@ -23,8 +23,8 @@ console.log('ðŸ”‘ Google Client ID:', import.meta.env.VITE_GOOGLE_CLIENT_ID ? 'â
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <SuiTreeThemeProvider defaultTheme="system" storageKey="suitree-theme">
-      <ThemeProvider defaultTheme="system" storageKey="suitree-ui-theme">
+    <SuiTreeThemeProvider>
+      <ThemeProvider>
         <Theme appearance="dark">
           <QueryClientProvider client={queryClient}>
             <SuiClientProvider networks={networkConfig} defaultNetwork="testnet">

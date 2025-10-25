@@ -10,48 +10,14 @@ import {
   Copy,
   Check
 } from 'lucide-react';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/card';
+import { Button } from '../components/ui/button';
 import { Avatar } from '../components/ui/Avatar';
-import { Badge } from '../components/ui/Badge';
+import { Badge } from '../components/ui/badge';
 
-// Types
-interface LinkTreeProfile {
-  id: { id: string };
-  owner: string;
-  title: string;
-  avatar_cid?: string;
-  bio: string;
-  links: Array<{
-    label: string;
-    url: string;
-    is_premium: boolean;
-    price: string;
-  }>;
-  theme: {
-    background_color: string;
-    text_color: string;
-    button_color: string;
-    font_style: string;
-  };
-  verified: boolean;
-  view_count: string;
-  earnings?: string;
-}
+// Import types from types.ts
+import { LinkTreeProfile } from '../types';
 
-interface Link {
-  id: string;
-  label: string;
-  url: string;
-  icon?: string;
-  isPremium?: boolean;
-}
-
-interface SocialLink {
-  platform: string;
-  url: string;
-  icon: React.ReactNode;
-}
 
 interface PublicProfileProps {
   profile: LinkTreeProfile;
@@ -72,19 +38,10 @@ const getLinkIcon = (icon?: string) => {
   return iconMap[icon] || <Globe className="h-5 w-5" />;
 };
 
-const getSocialIcon = (platform: string) => {
-  const iconMap: { [key: string]: React.ReactNode } = {
-    twitter: <Twitter className="h-5 w-5" />,
-    github: <Github className="h-5 w-5" />,
-    linkedin: <Linkedin className="h-5 w-5" />,
-    instagram: <Instagram className="h-5 w-5" />,
-  };
-  
-  return iconMap[platform] || <Globe className="h-5 w-5" />;
-};
 
 export const PublicProfile: React.FC<PublicProfileProps> = ({ profile }) => {
   const [copiedAddress, setCopiedAddress] = React.useState(false);
+  const [payingForLink, setPayingForLink] = React.useState<number | null>(null);
 
   const copyAddress = async () => {
     try {
@@ -98,6 +55,25 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ profile }) => {
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  // Convert MIST to SUI (1 SUI = 1,000,000,000 MIST)
+  const formatPrice = (priceInMist: string) => {
+    const mist = parseInt(priceInMist);
+    const sui = mist / 1000000000;
+    return sui.toFixed(4);
+  };
+
+  const handlePremiumLinkClick = async (link: any, index: number) => {
+    if (link.is_premium) {
+      setPayingForLink(index);
+      // TODO: Implement payment flow
+      // For now, just show a message
+      alert(`Premium Link: ${link.label}\nPrice: ${formatPrice(link.price)} SUI\n\nPayment system will be implemented soon!`);
+      setPayingForLink(null);
+    } else {
+      window.open(link.url, '_blank');
+    }
   };
 
   return (
@@ -212,7 +188,8 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ profile }) => {
                   <Button
                     variant="outline"
                     className="w-full justify-start space-x-3 h-12"
-                    onClick={() => window.open(link.url, '_blank')}
+                    onClick={() => handlePremiumLinkClick(link, index)}
+                    disabled={payingForLink === index}
                     style={{
                       borderColor: profile.theme.button_color || '#4B9EFF',
                       color: profile.theme.button_color || '#4B9EFF',
@@ -220,11 +197,18 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ profile }) => {
                   >
                     <span className="text-lg">{getLinkIcon()}</span>
                     <span className="flex-1 text-left">{link.label}</span>
-                    {link.is_premium && (
-                      <Badge variant="warning" size="sm">
-                        Premium
-                      </Badge>
-                    )}
+                    <div className="flex items-center space-x-2">
+                      {link.is_premium && (
+                        <>
+                          <Badge variant="warning" size="sm">
+                            {formatPrice(link.price)} SUI
+                          </Badge>
+                          <Badge variant="secondary" size="sm">
+                            Pay Access
+                          </Badge>
+                        </>
+                      )}
+                    </div>
                   </Button>
                 </motion.div>
               ))

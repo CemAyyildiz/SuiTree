@@ -76,7 +76,7 @@ export function Navbar({
             {onThemeToggle && (
               <Button
                 variant="ghost"
-                size="icon"
+                size="sm"
                 onClick={onThemeToggle}
                 className="h-9 w-9"
               >
@@ -96,7 +96,7 @@ export function Navbar({
             {onThemeToggle && (
               <Button
                 variant="ghost"
-                size="icon"
+                size="sm"
                 onClick={onThemeToggle}
                 className="h-9 w-9"
               >
@@ -110,7 +110,7 @@ export function Navbar({
             )}
             <Button
               variant="ghost"
-              size="icon"
+              size="sm"
               onClick={toggleMobileMenu}
               className="h-9 w-9"
             >

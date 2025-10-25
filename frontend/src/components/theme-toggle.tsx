@@ -44,7 +44,7 @@ export function ThemeToggle() {
   return (
     <Button
       variant="ghost"
-      size="icon"
+      size="sm"
       onClick={toggleTheme}
       className="h-9 w-9"
       title={getLabel()}

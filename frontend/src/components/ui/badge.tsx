@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { cn } from '../../lib/utils';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -27,15 +26,13 @@ const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
     };
 
     return (
-      <motion.div
+      <div
         ref={ref}
         className={cn(baseClasses, variants[variant], sizes[size], className)}
-        whileHover={{ scale: 1.05 }}
-        transition={{ duration: 0.1 }}
         {...props}
       >
         {children}
-      </motion.div>
+      </div>
     );
   }
 );

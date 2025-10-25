@@ -4,16 +4,15 @@ import {
   Plus, 
   Eye, 
   Edit, 
-  Trash2, 
   ExternalLink,
   Users,
   Link as LinkIcon,
   TrendingUp
 } from 'lucide-react';
 import { useSuiClient, useCurrentAccount } from '@mysten/dapp-kit';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
 import { Avatar } from '../../components/ui/Avatar';
 
 // Types
@@ -40,53 +39,8 @@ interface LinkTreeProfile {
   earnings?: string;
 }
 
-// Mock data for demonstration
-const mockProfiles = [
-  {
-    id: '1',
-    title: 'John Doe',
-    bio: 'Web3 Developer & Blockchain Enthusiast',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-    links: [
-      { label: 'Portfolio', url: 'https://johndoe.dev', icon: '🌐' },
-      { label: 'Twitter', url: 'https://twitter.com/johndoe', icon: '🐦' },
-      { label: 'GitHub', url: 'https://github.com/johndoe', icon: '💻' },
-    ],
-    viewCount: 1250,
-    isVerified: true,
-    createdAt: '2024-01-15',
-  },
-  {
-    id: '2',
-    title: 'Alice Smith',
-    bio: 'NFT Artist & Digital Creator',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
-    links: [
-      { label: 'OpenSea', url: 'https://opensea.io/alice', icon: '🎨' },
-      { label: 'Instagram', url: 'https://instagram.com/alice', icon: '📸' },
-    ],
-    viewCount: 890,
-    isVerified: false,
-    createdAt: '2024-01-20',
-  },
-  {
-    id: '3',
-    title: 'Bob Wilson',
-    bio: 'DeFi Researcher & Yield Farmer',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-    links: [
-      { label: 'Medium', url: 'https://medium.com/@bob', icon: '📝' },
-      { label: 'Discord', url: 'https://discord.gg/bob', icon: '💬' },
-      { label: 'Telegram', url: 'https://t.me/bob', icon: '📱' },
-    ],
-    viewCount: 2100,
-    isVerified: true,
-    createdAt: '2024-01-10',
-  },
-];
 
 export const Dashboard: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [profiles, setProfiles] = useState<LinkTreeProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,10 +49,7 @@ export const Dashboard: React.FC = () => {
   const account = useCurrentAccount();
   const userAddress = account?.address;
 
-  const filteredProfiles = profiles.filter(profile =>
-    profile.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    profile.bio.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProfiles = profiles;
 
   const loadOwnedProfiles = async () => {
     if (!userAddress) {
@@ -303,16 +254,14 @@ export const Dashboard: React.FC = () => {
                 No profiles found
               </h3>
               <p className="text-gray-600 dark:text-[#A1A1AA] mb-4">
-                {searchQuery ? 'No profiles match your search.' : 'You haven\'t created any profiles yet.'}
+                You haven't created any profiles yet.
               </p>
-              {!searchQuery && (
-                <Button 
-                  leftIcon={<Plus className="h-4 w-4" />}
-                  onClick={() => window.location.href = '/#/create'}
-                >
-                  Create Your First Profile
-                </Button>
-              )}
+              <Button 
+                leftIcon={<Plus className="h-4 w-4" />}
+                onClick={() => window.location.href = '/#/create'}
+              >
+                Create Your First Profile
+              </Button>
             </div>
           ) : (
             <div className="space-y-4">

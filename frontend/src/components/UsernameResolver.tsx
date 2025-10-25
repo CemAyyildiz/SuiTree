@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { useSuiClient, useCurrentAccount } from '@mysten/dapp-kit';
+import { useSuiClient } from '@mysten/dapp-kit';
 import { PublicProfile } from '../pages/PublicProfile';
-import { Card, CardContent } from './ui/Card';
-import { Button } from './ui/Button';
-import { PACKAGE_ID, MODULE_NAME, REGISTRY_ID } from '../constants';
+import { Card, CardContent } from './ui/card';
+import { Button } from './ui/button';
+import { REGISTRY_ID } from '../constants';
 import { LinkTreeProfile } from '../types';
 
 interface UsernameResolverProps {
@@ -17,7 +16,6 @@ export const UsernameResolver: React.FC<UsernameResolverProps> = ({ username }) 
   const [error, setError] = useState<string | null>(null);
   
   const suiClient = useSuiClient();
-  const account = useCurrentAccount();
 
   const resolveAndLoadProfile = async () => {
     if (!username) return;

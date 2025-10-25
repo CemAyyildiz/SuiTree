@@ -1,17 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AdminLayout } from '../components/layout/AdminLayout';
 import { Dashboard } from './admin/Dashboard';
 import { PublicProfile } from './PublicProfile';
-import { Button } from '../components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { useSuiClient, useCurrentAccount } from '@mysten/dapp-kit';
+import { LinkTreeProfile } from '../types';
+import { PACKAGE_ID, MODULE_NAME } from '../constants';
 import { 
   LayoutDashboard, 
   User, 
   Code,
   Palette,
-  Smartphone
+  Smartphone,
+  Plus
 } from 'lucide-react';
 
 // Mock data for the demo
@@ -20,7 +24,7 @@ const mockProfile = {
   owner: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
   title: 'Alex Chen',
   bio: 'Full-stack developer passionate about Web3 and blockchain technology. Building the future of decentralized applications.',
-  avatar_cid: undefined,
+  avatar_cid: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
   verified: true,
   links: [
     {
@@ -55,7 +59,7 @@ const mockProfile = {
     },
   ],
   view_count: '2847',
-  earnings: '0',
+  earnings: { value: '0' },
   theme: {
     background_color: '#667eea',
     text_color: '#ffffff',
@@ -69,6 +73,11 @@ type ViewMode = 'admin' | 'public' | 'overview';
 export const DemoPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [currentPath, setCurrentPath] = useState('/admin');
+  const [dynamicProfile, setDynamicProfile] = useState<LinkTreeProfile | null>(null);
+  const [loading, setLoading] = useState(false);
+  
+  const suiClient = useSuiClient();
+  const account = useCurrentAccount();
 
   const handleNavigate = (path: string) => {
     setCurrentPath(path);
@@ -77,6 +86,70 @@ export const DemoPage: React.FC = () => {
   const handleSearch = (query: string) => {
     console.log('Search query:', query);
   };
+
+  const loadDynamicProfile = async () => {
+    if (!account?.address) return;
+    
+    setLoading(true);
+    try {
+      // Load the first profile owned by the current user
+      const ownedObjects = await suiClient.getOwnedObjects({
+        owner: account.address,
+        filter: {
+          StructType: `${PACKAGE_ID}::${MODULE_NAME}::LinkTreeProfile`
+        },
+        options: {
+          showContent: true,
+          showType: true,
+        },
+      });
+
+      if (ownedObjects.data.length > 0) {
+        const firstProfile = ownedObjects.data[0];
+        if (firstProfile.data?.content && "fields" in firstProfile.data.content) {
+          const content = firstProfile.data.content as any;
+          
+          // Parse links
+          const rawLinks = content.fields.links || [];
+          const parsedLinks = rawLinks.map((link: any) => ({
+            label: link.label || link.fields?.label || "",
+            url: link.url || link.fields?.url || "",
+            is_premium: link.is_premium ?? link.fields?.is_premium ?? false,
+            price: String(link.price ?? link.fields?.price ?? "0"),
+          }));
+          
+          const profileData: LinkTreeProfile = {
+            id: { id: firstProfile.data.objectId },
+            owner: content.fields.owner,
+            title: content.fields.title,
+            avatar_cid: content.fields.avatar_cid,
+            bio: content.fields.bio,
+            links: parsedLinks,
+            theme: content.fields.theme || {
+              background_color: "#f8f9fa",
+              text_color: "#2c3e50",
+              button_color: "#3498db",
+              font_style: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+            },
+            verified: content.fields.verified,
+            view_count: content.fields.view_count || "0",
+            earnings: content.fields.earnings,
+          };
+          setDynamicProfile(profileData);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading dynamic profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (account?.address) {
+      loadDynamicProfile();
+    }
+  }, [account?.address]);
 
   const features = [
     {
@@ -107,6 +180,13 @@ export const DemoPage: React.FC = () => {
       color: 'text-orange-600',
       bgColor: 'bg-orange-100 dark:bg-orange-900/20',
     },
+    {
+      icon: <span className="text-lg">💰</span>,
+      title: 'Premium Links',
+      description: 'Monetize your content with premium links. Set custom prices in SUI.',
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-100 dark:bg-yellow-900/20',
+    },
   ];
 
   if (viewMode === 'admin') {
@@ -125,6 +205,22 @@ export const DemoPage: React.FC = () => {
   }
 
   if (viewMode === 'public') {
+    if (loading) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-[#F9FAFB] to-white dark:from-[#0D0D0F] dark:to-[#18181B] flex items-center justify-center p-4">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4B9EFF] mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-[#A1A1AA]">Loading dynamic profile...</p>
+          </div>
+        </div>
+      );
+    }
+    
+    if (dynamicProfile) {
+      return <PublicProfile profile={dynamicProfile} />;
+    }
+    
+    // Fallback to mock profile if no dynamic profile found
     return <PublicProfile profile={mockProfile} />;
   }
 
@@ -175,9 +271,15 @@ export const DemoPage: React.FC = () => {
             variant="outline"
             size="lg"
             leftIcon={<User className="h-5 w-5" />}
-            onClick={() => setViewMode('public')}
+            onClick={() => {
+              if (account?.address) {
+                loadDynamicProfile();
+              }
+              setViewMode('public');
+            }}
+            disabled={!account?.address}
           >
-            View Public Profile
+            {account?.address ? 'View Dynamic Profile' : 'Connect Wallet First'}
           </Button>
           <Button
             variant="secondary"
@@ -187,10 +289,19 @@ export const DemoPage: React.FC = () => {
           >
             Test Subdomains
           </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            leftIcon={<Plus className="h-5 w-5" />}
+            onClick={() => window.location.href = '/#/create'}
+            disabled={!account?.address}
+          >
+            {account?.address ? 'Create Profile' : 'Connect Wallet to Create'}
+          </Button>
         </motion.div>
 
         {/* Features */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-16">
           {features.map((feature, index) => (
             <motion.div
               key={feature.title}
