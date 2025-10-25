@@ -22,20 +22,25 @@ function useSubdomainDetection() {
     const hostname = window.location.hostname;
     const pathname = window.location.pathname;
     
+    console.log('Subdomain detection - hostname:', hostname, 'pathname:', pathname);
+    
     // Exact localhost or 127.0.0.1 → admin mode
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      console.log('Detected localhost - setting admin mode');
       setMode('admin');
       return;
     }
 
     // Parse subdomain
     const parts = hostname.split('.');
+    console.log('Hostname parts:', parts);
     
     // Check for localhost subdomains (e.g., cem.localhost)
     if (hostname.endsWith('.localhost')) {
       // Subdomain on localhost
       const subdomain = parts[0];
       if (subdomain && subdomain !== 'localhost') {
+        console.log('Detected localhost subdomain:', subdomain, '- setting profile mode');
         setUsername(subdomain);
         setMode('profile');
         return;
@@ -46,6 +51,18 @@ function useSubdomainDetection() {
     if (hostname.endsWith('.suitree.trwal.app')) {
       const subdomain = parts[0];
       if (subdomain && subdomain !== 'suitree') {
+        console.log('Detected Walrus subdomain (endsWith):', subdomain, '- setting profile mode');
+        setUsername(subdomain);
+        setMode('profile');
+        return;
+      }
+    }
+    
+    // Check for direct subdomain pattern (e.g., username.suitree.trwal.app)
+    if (parts.length === 4 && parts[1] === 'suitree' && parts[2] === 'trwal' && parts[3] === 'app') {
+      const subdomain = parts[0];
+      if (subdomain && subdomain !== 'suitree' && subdomain !== 'www') {
+        console.log('Detected direct subdomain pattern:', subdomain, '- setting profile mode');
         setUsername(subdomain);
         setMode('profile');
         return;
@@ -97,6 +114,7 @@ function useSubdomainDetection() {
     }
     
     // Default to admin mode for other cases
+    console.log('No subdomain pattern matched - defaulting to admin mode');
     setMode('admin');
   }, []);
 

@@ -17,7 +17,7 @@ contexts:
     # Subdomain routing configuration
     routes:
       - pattern: "*.suitree.trwal.app"
-        target: "/profile"
+        target: "/"
         params:
           username: "{subdomain}"
   mainnet:
