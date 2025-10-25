@@ -43,15 +43,22 @@ function useSubdomainDetection() {
       }
     }
     
-    // For production domains (e.g., suitree.walrus.site)
+    // For production domains (e.g., suitree.walrus.site or 65bptoh2u9od2...trwal.app)
     // Main domain or www → admin mode
     if (parts.length <= 2 || parts[0] === 'www' || parts[0] === 'suitree') {
       setMode('admin');
       return;
     }
 
-    // Subdomain detected → profile mode (e.g., cem.suitree.walrus.site)
+    // Check if subdomain is a Walrus B36 ID (43 characters)
     const subdomain = parts[0];
+    if (subdomain && subdomain.length >= 40) {
+      // This looks like a B36 ID, treat as main site (admin mode)
+      setMode('admin');
+      return;
+    }
+
+    // Subdomain detected → profile mode (e.g., cem.suitree.walrus.site)
     setUsername(subdomain);
     setMode('profile');
   }, []);
