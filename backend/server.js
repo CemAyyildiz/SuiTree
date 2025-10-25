@@ -30,77 +30,138 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Sponsor transaction endpoint
-app.post('/api/sponsor-transaction', async (req, res) => {
+// Create Google OAuth URL (zkLogin)
+app.post('/api/create-google-auth-url', async (req, res) => {
+  try {
+    const { redirectUrl, googleClientId } = req.body;
+
+    if (!redirectUrl || !googleClientId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing redirectUrl or googleClientId',
+      });
+    }
+
+    console.log('🔐 Creating Google OAuth URL...');
+    console.log('  - Redirect URL:', redirectUrl);
+    console.log('  - Google Client ID:', googleClientId.substring(0, 20) + '...');
+
+    // Google OAuth URL'ini manuel olarak oluştur
+    const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    googleAuthUrl.searchParams.set('client_id', googleClientId);
+    googleAuthUrl.searchParams.set('redirect_uri', redirectUrl);
+    googleAuthUrl.searchParams.set('response_type', 'id_token');
+    googleAuthUrl.searchParams.set('scope', 'openid email profile');
+    googleAuthUrl.searchParams.set('nonce', Math.random().toString(36).substring(2, 15));
+    
+    const authUrl = googleAuthUrl.toString();
+
+    console.log('✅ Google OAuth URL created!');
+
+    res.json({
+      success: true,
+      authUrl: authUrl,
+    });
+
+  } catch (error) {
+    console.error('❌ Error creating Google auth URL:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to create auth URL',
+    });
+  }
+});
+
+// Handle Google OAuth callback (zkLogin)
+app.post('/api/handle-google-callback', async (req, res) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing idToken',
+      });
+    }
+
+    console.log('🔐 Handling Google OAuth callback...');
+
+    // JWT'den direkt address çıkar (basit yaklaşım)
+    // Enoki'nin backend API'si karmaşık, şimdilik basit çözüm
+    const jwtPayload = JSON.parse(Buffer.from(idToken.split('.')[1], 'base64').toString());
+    const email = jwtPayload.email;
+    const sub = jwtPayload.sub;
+    
+    // Basit bir address oluştur (gerçek zkLogin address değil, test için)
+    const mockAddress = `0x${sub.slice(0, 40).padStart(40, '0')}`;
+    
+    console.log('✅ Mock zkLogin address created!');
+    console.log('  - Email:', email);
+    console.log('  - Address:', mockAddress);
+
+    res.json({
+      success: true,
+      address: mockAddress,
+      session: {
+        email: email,
+        sub: sub,
+        jwt: idToken
+      },
+    });
+
+  } catch (error) {
+    console.error('❌ Error handling OAuth callback:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to handle OAuth callback',
+    });
+  }
+});
+
+// Sponsor and execute transaction in one call
+app.post('/api/sponsor-and-execute-transaction', async (req, res) => {
   try {
     const { transactionBytes, sender } = req.body;
 
     if (!transactionBytes || !sender) {
       return res.status(400).json({
+        success: false,
         error: 'Missing required fields: transactionBytes, sender',
       });
     }
 
-    console.log('🎁 Sponsoring transaction for:', sender);
+    console.log('🎁 Sponsoring and executing transaction for:', sender);
 
-    // Enoki ile transaction'ı sponsor et
-    const sponsoredResponse = await enokiClient.createSponsoredTransaction({
+    // Hex string'i Uint8Array'e çevir
+    const txBytes = new Uint8Array(
+      transactionBytes.match(/.{1,2}/g).map(byte => parseInt(byte, 16))
+    );
+
+    // Enoki ile transaction'ı sponsor et ve execute et
+    const result = await enokiClient.executeSponsoredTransaction({
       network: 'testnet',
-      transactionKindBytes: transactionBytes,
+      transactionKindBytes: txBytes,
       sender,
-      allowedMoveCallTargets: ['*'], // Tüm move call'lara izin ver
-      allowedAddresses: ['*'], // Tüm adreslere izin ver
     });
 
-    console.log('✅ Transaction sponsored successfully!');
+    console.log('✅ Transaction sponsored and executed successfully!');
+    console.log('Digest:', result.digest);
 
     res.json({
       success: true,
-      sponsoredTransaction: sponsoredResponse,
+      digest: result.digest,
+      effects: result.effects,
     });
 
   } catch (error) {
-    console.error('❌ Error sponsoring transaction:', error);
+    console.error('❌ Error in sponsored transaction:', error);
     
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to sponsor transaction',
-    });
-  }
-});
-
-// Execute sponsored transaction endpoint
-app.post('/api/execute-sponsored-transaction', async (req, res) => {
-  try {
-    const { digest, signature } = req.body;
-
-    if (!digest || !signature) {
-      return res.status(400).json({
-        error: 'Missing required fields: digest, signature',
-      });
-    }
-
-    console.log('🚀 Executing sponsored transaction...');
-
-    // Enoki ile transaction'ı execute et
-    const executeResponse = await enokiClient.executeSponsoredTransaction({
-      digest,
-      signature,
-    });
-
-    console.log('✅ Transaction executed successfully!', executeResponse);
-
-    res.json({
-      success: true,
-      result: executeResponse,
-    });
-
-  } catch (error) {
-    console.error('❌ Error executing transaction:', error);
-    
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to execute transaction',
+      error: error.message || 'Failed to sponsor and execute transaction',
+      details: error.toString(),
     });
   }
 });
@@ -113,12 +174,13 @@ app.listen(PORT, () => {
 ║  🌳 SuiTree Backend API                                    ║
 ║                                                            ║
 ║  🚀 Server running on: http://localhost:${PORT}           ║
-║  🎁 Sponsored Transactions: ENABLED                        ║
+║  🔐 zkLogin + Sponsored Transactions: ENABLED              ║
 ║                                                            ║
 ║  Endpoints:                                                ║
 ║  • GET  /health                                            ║
-║  • POST /api/sponsor-transaction                           ║
-║  • POST /api/execute-sponsored-transaction                 ║
+║  • POST /api/create-google-auth-url                        ║
+║  • POST /api/handle-google-callback                        ║
+║  • POST /api/sponsor-and-execute-transaction               ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
   `);

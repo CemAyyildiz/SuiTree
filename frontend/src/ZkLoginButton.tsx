@@ -1,57 +1,79 @@
-import { useEnokiFlow, useZkLogin } from '@mysten/enoki/react';
 import { Button, Flex, Text } from '@radix-ui/themes';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
 export function ZkLoginButton() {
-  const enokiFlow = useEnokiFlow();
-  const zkLogin = useZkLogin();
   const [isLoading, setIsLoading] = useState(false);
+  const [zkLoginAddress, setZkLoginAddress] = useState<string | null>(null);
+
+  // LocalStorage'dan zkLogin address'i oku
+  useEffect(() => {
+    const savedAddress = localStorage.getItem('zkLoginAddress');
+    if (savedAddress) {
+      setZkLoginAddress(savedAddress);
+      console.log('✅ zkLogin address loaded from storage:', savedAddress);
+    }
+  }, []);
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      // Google Client ID kontrolü
       const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      console.log('🔑 Google Client ID:', googleClientId?.substring(0, 20) + '...');
+      
       if (!googleClientId) {
-        alert('Google Client ID bulunamadı. Lütfen .env dosyasında VITE_GOOGLE_CLIENT_ID ayarlayın.');
+        alert('Google Client ID bulunamadı!');
         setIsLoading(false);
         return;
       }
 
-      // Google OAuth URL oluştur
-      const authUrl = await enokiFlow.createAuthorizationURL({
-        provider: 'google',
-        clientId: googleClientId,
-        redirectUrl: window.location.origin,
-        network: 'testnet',
+      const redirectUrl = window.location.href.split('#')[0];
+      console.log('🔗 Redirect URL:', redirectUrl);
+      
+      // Backend'den Google OAuth URL'ini al
+      console.log('📞 Requesting Google OAuth URL from backend...');
+      const response = await fetch(`${BACKEND_URL}/api/create-google-auth-url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          redirectUrl,
+          googleClientId,
+        }),
       });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to create auth URL');
+      }
+
+      console.log('✅ Got auth URL from backend');
+      console.log('🚀 Redirecting to Google OAuth...');
       
       // Google OAuth'a yönlendir
-      window.location.href = authUrl;
+      window.location.href = data.authUrl;
     } catch (error) {
-      console.error('Google login başlatılamadı:', error);
+      console.error('❌ Login failed:', error);
       alert('Login başlatılamadı: ' + (error as Error).message);
       setIsLoading(false);
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await enokiFlow.logout();
-      console.log('Çıkış yapıldı');
-      // Sayfayı yenile
-      window.location.reload();
-    } catch (error) {
-      console.error('Çıkış yapılamadı:', error);
-    }
+  const handleLogout = () => {
+    localStorage.removeItem('zkLoginAddress');
+    localStorage.removeItem('zkLoginSession');
+    setZkLoginAddress(null);
+    console.log('✅ Logged out');
+    window.location.reload();
   };
 
   // Eğer zkLogin ile giriş yapılmışsa
-  if (zkLogin.address) {
+  if (zkLoginAddress) {
     return (
       <Flex align="center" gap="2">
         <Text size="2" color="green">
-          ✓ Google ile bağlı: {zkLogin.address.slice(0, 6)}...{zkLogin.address.slice(-4)}
+          ✓ Google: {zkLoginAddress.slice(0, 6)}...{zkLoginAddress.slice(-4)}
         </Text>
         <Button
           onClick={handleLogout}
@@ -59,13 +81,12 @@ export function ZkLoginButton() {
           color="red"
           size="1"
         >
-          Çıkış Yap
+          Çıkış
         </Button>
       </Flex>
     );
   }
 
-  // Hiçbir bağlantı yoksa, Google login butonu göster
   return (
     <Button
       onClick={handleGoogleLogin}

@@ -1,5 +1,4 @@
 import { useCurrentAccount, useSuiClient } from "@mysten/dapp-kit";
-import { useZkLogin } from "@mysten/enoki/react";
 import { Button, Card, Container, Flex, Heading, Text } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -7,14 +6,21 @@ import { LinkTreeProfile } from "./types";
 
 export function HomePage() {
   const account = useCurrentAccount();
-  const zkLogin = useZkLogin();
   const suiClient = useSuiClient();
   const navigate = useNavigate();
   const [ownedProfiles, setOwnedProfiles] = useState<LinkTreeProfile[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // zkLogin address'i localStorage'dan oku
+  const [zkLoginAddress, setZkLoginAddress] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const savedAddress = localStorage.getItem('zkLoginAddress');
+    setZkLoginAddress(savedAddress);
+  }, []);
 
   // Hem normal cüzdan hem zkLogin kontrolü
-  const userAddress = account?.address || zkLogin.address;
+  const userAddress = account?.address || zkLoginAddress;
 
   useEffect(() => {
     if (userAddress) {

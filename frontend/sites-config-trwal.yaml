@@ -13,7 +13,7 @@ contexts:
        wallet: /Users/cemayyildiz/.sui/sui_config/client.yaml
        walrus_binary: /Users/cemayyildiz/.local/bin/walrus
        walrus_config: /Users/cemayyildiz/.config/walrus/client_config.yaml
-       gas_budget: 500000000
+       gas_budget: 100000000
   mainnet:
     # TRWal portal mainnet
     portal: wal.app
@@ -28,7 +28,7 @@ contexts:
        wallet: /Users/cemayyildiz/.sui/sui_config/client.yaml
        walrus_binary: /Users/cemayyildiz/.local/bin/walrus
        walrus_config: /Users/cemayyildiz/.config/walrus/client_config.yaml
-       gas_budget: 500000000
+       gas_budget: 100000000
 
 default_context: testnet
 

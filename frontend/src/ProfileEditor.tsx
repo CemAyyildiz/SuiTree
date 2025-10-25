@@ -3,7 +3,6 @@ import {
   useSignAndExecuteTransaction,
   useSuiClient,
 } from "@mysten/dapp-kit";
-import { useZkLogin } from "@mysten/enoki/react";
 import { Transaction } from "@mysten/sui/transactions";
 import {
   Box,
@@ -29,19 +28,26 @@ export function ProfileEditor(props?: ProfileEditorProps) {
   const params = useParams<{ objectId?: string }>();
   const objectId = props?.objectId || params.objectId;
   const account = useCurrentAccount();
-  const zkLogin = useZkLogin();
   const suiClient = useSuiClient();
   const navigate = useNavigate();
   const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
 
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<LinkTreeProfile | null>(null);
+  
+  // zkLogin address'i localStorage'dan oku
+  const [zkLoginAddress, setZkLoginAddress] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const savedAddress = localStorage.getItem('zkLoginAddress');
+    setZkLoginAddress(savedAddress);
+  }, []);
 
   // Hem normal cüzdan hem zkLogin kontrolü
-  const userAddress = account?.address || zkLogin.address;
+  const userAddress = account?.address || zkLoginAddress;
   
   // Sponsor logic: zkLogin varsa sponsor, wallet varsa normal
-  const useSponsoredTx = !!zkLogin.address && !account?.address;
+  const useSponsoredTx = !!zkLoginAddress && !account?.address;
 
   // Form state
   const [title, setTitle] = useState("");
@@ -131,46 +137,40 @@ export function ProfileEditor(props?: ProfileEditorProps) {
       if (useSponsoredTx) {
         console.log('🎁 Using sponsored transaction (zkLogin)...');
         try {
+          // 1. Build transaction bytes
           const transactionBytes = await tx.build({ client: suiClient as any });
+          console.log('📦 Transaction built');
           
-          const sponsorResponse = await fetch('http://localhost:3001/api/sponsor-transaction', {
+          // Convert Uint8Array to hex string
+          const hexString = Array.from(transactionBytes)
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+          
+          // 2. Send to backend to sponsor and execute
+          console.log('📤 Sending to backend for sponsored execution...');
+          const response = await fetch('http://localhost:3001/api/sponsor-and-execute-transaction', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              transactionBytes: transactionBytes,
+              transactionBytes: hexString,
               sender: userAddress,
             }),
           });
 
-          const sponsorData = await sponsorResponse.json();
+          const data = await response.json();
 
-          if (!sponsorData.success) {
-            throw new Error(sponsorData.error || 'Failed to sponsor transaction');
+          if (!data.success) {
+            throw new Error(data.error || 'Failed to sponsor and execute transaction');
           }
 
-          console.log('✅ Transaction sponsored!', sponsorData);
+          console.log('✅ Transaction sponsored and executed by backend!');
+          console.log('Digest:', data.digest);
           
-          // Execute sponsored transaction
-          const executeResponse = await fetch('http://localhost:3001/api/execute-sponsored-transaction', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              digest: sponsorData.sponsoredTransaction.transactionDigest,
-              signature: sponsorData.sponsoredTransaction.userSignature,
-            }),
-          });
-          
-          const executeData = await executeResponse.json();
-          
-          if (!executeData.success) {
-            throw new Error(executeData.error || 'Failed to execute sponsored transaction');
-          }
-          
-          result = { digest: executeData.result.digest };
-          alert('🎉 Profil oluşturuldu! Gas sponsored by backend!');
+          result = { digest: data.digest };
+          alert('🎉 Profil oluşturuldu! Gas ücretini biz ödedik! 🎁');
         } catch (sponsorError) {
           console.error('⚠️ Sponsored tx failed:', sponsorError);
-          alert('❌ Sponsored transaction failed. Please try again.');
+          alert('❌ İşlem başarısız: ' + (sponsorError as Error).message);
           setLoading(false);
           return;
         }
@@ -365,32 +365,41 @@ export function ProfileEditor(props?: ProfileEditorProps) {
         console.log('🎁 Sponsoring transaction via backend (zkLogin)...');
         
         try {
-          // Transaction'ı serialize et
+          // 1. Build transaction bytes
           const transactionBytes = await tx.build({ client: suiClient as any });
+          console.log('📦 Transaction built');
           
-          // Backend'e sponsor isteği gönder
-          const sponsorResponse = await fetch('http://localhost:3001/api/sponsor-transaction', {
+          // Convert Uint8Array to hex string
+          const hexString = Array.from(transactionBytes)
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+          
+          // 2. Send to backend to sponsor and execute
+          console.log('📤 Sending to backend for sponsored execution...');
+          const response = await fetch('http://localhost:3001/api/sponsor-and-execute-transaction', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              transactionBytes: transactionBytes,
+              transactionBytes: hexString,
               sender: userAddress,
             }),
           });
 
-          const sponsorData = await sponsorResponse.json();
+          const data = await response.json();
 
-          if (!sponsorData.success) {
-            throw new Error(sponsorData.error || 'Failed to sponsor transaction');
+          if (!data.success) {
+            throw new Error(data.error || 'Failed to sponsor and execute transaction');
           }
 
-          console.log('✅ Transaction sponsored!', sponsorData);
-          alert('🎉 Link added! Gas sponsored by backend!');
+          console.log('✅ Transaction sponsored and executed by backend!');
+          console.log('Digest:', data.digest);
+          
+          alert('🎉 Link eklendi! Gas ücretini biz ödedik! 🎁');
           loadProfile();
           setLoading(false);
         } catch (sponsorError) {
           console.error('⚠️ Sponsored tx failed:', sponsorError);
-          alert('❌ Sponsored transaction failed. Please try again.');
+          alert('❌ İşlem başarısız: ' + (sponsorError as Error).message);
           setLoading(false);
         }
       } else {
