@@ -262,12 +262,39 @@ export function ProfileView() {
             </Text>
           )}
 
+          {/* Debug Info (Remove in production) */}
+          {process.env.NODE_ENV === 'development' && (
+            <Card style={{ background: "#333", padding: "10px", marginBottom: "10px" }}>
+              <Text size="1" style={{ color: "#fff" }}>
+                Debug: {profile.links.length} links found
+              </Text>
+              {profile.links.length === 0 && (
+                <Text size="1" style={{ color: "#ff6b6b" }}>
+                  ⚠️ No links in this profile. Go to Edit page to add links.
+                </Text>
+              )}
+            </Card>
+          )}
+
           {/* Links */}
           <Flex direction="column" gap="3" style={{ width: "100%", maxWidth: "500px" }}>
             {profile.links.length === 0 && (
-              <Text size="2" color="gray" style={{ textAlign: "center" }}>
-                No links added yet
-              </Text>
+              <Card style={{ padding: "40px", textAlign: "center" }}>
+                <Text size="4" weight="bold" style={{ color: theme.text_color, marginBottom: "8px" }}>
+                  No links yet
+                </Text>
+                <Text size="2" color="gray">
+                  This profile doesn't have any links added.
+                </Text>
+                {account?.address === profile.owner && (
+                  <Button 
+                    style={{ marginTop: "16px" }}
+                    onClick={() => window.location.href = `/edit/${profile.id.id}`}
+                  >
+                    Add Links
+                  </Button>
+                )}
+              </Card>
             )}
             {profile.links.map((link, index) => {
               const isPremium = link.is_premium;
