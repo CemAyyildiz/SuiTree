@@ -161,7 +161,46 @@ export function ProfileEditor(props?: ProfileEditorProps) {
           });
           
           console.log("✅ Username registered!", result2.digest);
-          alert(`🎉 Profil oluşturuldu!\n\nUsername: @${username}\nPublic link:\n${username}.suitree.walrus.site\n\nTransaction: ${result.digest}`);
+          
+          // Add links after username registration
+          if (links.length > 0 && profileObjectId) {
+            try {
+              for (const link of links) {
+                const tx3 = new Transaction();
+                if (link.is_premium) {
+                  tx3.moveCall({
+                    target: `${PACKAGE_ID}::${MODULE_NAME}::add_premium_link`,
+                    arguments: [
+                      tx3.object(profileObjectId),
+                      tx3.pure.string(link.label),
+                      tx3.pure.string(link.url),
+                      tx3.pure.u64(link.price),
+                    ],
+                  });
+                } else {
+                  tx3.moveCall({
+                    target: `${PACKAGE_ID}::${MODULE_NAME}::add_link`,
+                    arguments: [
+                      tx3.object(profileObjectId),
+                      tx3.pure.string(link.label),
+                      tx3.pure.string(link.url),
+                    ],
+                  });
+                }
+                
+                await signAndExecuteTransaction({
+                  transaction: tx3,
+                });
+                console.log(`✅ Link added: ${link.label}`);
+              }
+              alert(`🎉 Profil oluşturuldu!\n\nUsername: @${username}\nLinks: ${links.length} adet eklendi\nPublic link:\n${username}.suitree.walrus.site\n\nTransaction: ${result.digest}`);
+            } catch (linkError) {
+              console.error("Link addition failed:", linkError);
+              alert(`🎉 Profil oluşturuldu!\n\nUsername: @${username}\n⚠️ Linkler eklenemedi: ${(linkError as Error).message}\nPublic link:\n${username}.suitree.walrus.site\n\nTransaction: ${result.digest}`);
+            }
+          } else {
+            alert(`🎉 Profil oluşturuldu!\n\nUsername: @${username}\nPublic link:\n${username}.suitree.walrus.site\n\nTransaction: ${result.digest}`);
+          }
         } catch (usernameError) {
           console.error("Username registration failed:", usernameError);
           const errorMsg = (usernameError as Error).message || String(usernameError);
