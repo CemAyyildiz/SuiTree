@@ -1,7 +1,7 @@
 // Contract configuration
 // TODO: Update these values after deploying your contract
-export const PACKAGE_ID = "0xe26968e091caaad876cb9ee6ed308dc27639dbd60e9c78bdc9f98552787d9c3b";
-export const REGISTRY_ID = "0x48cc128702791b0e2b6c1455c341f747c7fed39cb04e4a7253a0829fc592e53c";
+export const PACKAGE_ID = "0xb0ef7e34bb939114748607b2dca1e6ef1fc856d9e77ad5f9822bf36698c98ffa";
+export const REGISTRY_ID = "0x558fa53d9ba9e5aaee5403a24f4e78e8f505114164fca6e7b73088e40c2b3c8d";
 
 // Module name
 export const MODULE_NAME = "contrat";

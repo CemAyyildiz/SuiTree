@@ -1,6 +1,8 @@
 export interface Link {
   label: string;
   url: string;
+  is_premium: boolean;
+  price: string; // in MIST
 }
 
 export interface Theme {
@@ -22,5 +24,6 @@ export interface LinkTreeProfile {
   theme: Theme;
   verified: boolean;
   view_count: string;
+  earnings?: { value: string }; // Balance in MIST
 }
 

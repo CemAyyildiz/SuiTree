@@ -1,21 +1,33 @@
-import { useSuiClient } from "@mysten/dapp-kit";
-import { Box, Card, Container, Flex, Heading, Text } from "@radix-ui/themes";
+import { useCurrentAccount, useSuiClient, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
+import { Transaction } from "@mysten/sui/transactions";
+import { Box, Card, Container, Flex, Heading, Text, Button, Dialog } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { LinkTreeProfile } from "./types";
+import { LinkTreeProfile, Link } from "./types";
+import { PACKAGE_ID, MODULE_NAME } from "./constants";
 
 export function ProfileView() {
   const { objectId } = useParams<{ objectId: string }>();
   const suiClient = useSuiClient();
+  const account = useCurrentAccount();
+  const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
   const [profile, setProfile] = useState<LinkTreeProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedLink, setSelectedLink] = useState<{ link: Link; index: number } | null>(null);
+  const [hasAccess, setHasAccess] = useState<{ [key: number]: boolean }>({});
 
   useEffect(() => {
     if (objectId) {
       loadProfile();
     }
   }, [objectId]);
+
+  useEffect(() => {
+    if (profile && account?.address) {
+      checkPremiumAccess();
+    }
+  }, [profile, account]);
 
   const loadProfile = async () => {
     if (!objectId) return;
@@ -49,11 +61,9 @@ export function ProfileView() {
           },
           verified: content.fields.verified,
           view_count: content.fields.view_count || "0",
+          earnings: content.fields.earnings,
         };
         setProfile(profileData);
-
-        // Increment view count (optional - requires transaction)
-        // You could call increment_views here if needed
       } else {
         setError("Profile not found");
       }
@@ -62,6 +72,85 @@ export function ProfileView() {
       setError("Failed to load profile");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkPremiumAccess = async () => {
+    if (!profile || !account?.address) return;
+
+    const accessMap: { [key: number]: boolean } = {};
+
+    for (let i = 0; i < profile.links.length; i++) {
+      const link = profile.links[i];
+      if (link.is_premium) {
+        try {
+          // Check if user has access via dynamic field
+          const accessKey = {
+            link_index: i,
+            user: account.address,
+          };
+          
+          // Try to get dynamic field
+          const field = await suiClient.getDynamicFieldObject({
+            parentId: profile.id.id,
+            name: {
+              type: `${PACKAGE_ID}::${MODULE_NAME}::LinkAccessKey`,
+              value: accessKey,
+            },
+          });
+
+          accessMap[i] = field.data !== null;
+        } catch {
+          accessMap[i] = false;
+        }
+      }
+    }
+
+    setHasAccess(accessMap);
+  };
+
+  const handleLinkClick = (link: Link, index: number, e: React.MouseEvent) => {
+    if (link.is_premium && !hasAccess[index]) {
+      e.preventDefault();
+      setSelectedLink({ link, index });
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!selectedLink || !objectId || !account) return;
+
+    try {
+      const tx = new Transaction();
+
+      const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(selectedLink.link.price)]);
+
+      tx.moveCall({
+        target: `${PACKAGE_ID}::${MODULE_NAME}::pay_for_link_access`,
+        arguments: [
+          tx.object(objectId),
+          tx.pure.u64(selectedLink.index),
+          coin,
+        ],
+      });
+
+      signAndExecuteTransaction(
+        { transaction: tx },
+        {
+          onSuccess: () => {
+            alert("Payment successful! Opening link...");
+            setHasAccess({ ...hasAccess, [selectedLink.index]: true });
+            setSelectedLink(null);
+            window.open(selectedLink.link.url, "_blank");
+          },
+          onError: (error) => {
+            console.error("Payment failed:", error);
+            alert("Payment failed: " + error.message);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Payment failed");
     }
   };
 
@@ -159,43 +248,111 @@ export function ProfileView() {
 
           {/* Links */}
           <Flex direction="column" gap="3" style={{ width: "100%", maxWidth: "500px" }}>
-            {profile.links.map((link, index) => (
-              <a
-                key={index}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ textDecoration: "none" }}
-              >
-                <Card
-                  style={{
-                    backgroundColor: theme.button_color,
-                    cursor: "pointer",
-                    transition: "transform 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "scale(1.02)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "scale(1)";
-                  }}
+            {profile.links.map((link, index) => {
+              const isPremium = link.is_premium;
+              const hasUserAccess = hasAccess[index] || !isPremium;
+              const priceInSui = isPremium ? (parseInt(link.price) / 1_000_000_000).toFixed(2) : "0";
+
+              return (
+                <a
+                  key={index}
+                  href={hasUserAccess ? link.url : undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: "none" }}
+                  onClick={(e) => handleLinkClick(link, index, e)}
                 >
-                  <Flex justify="center" align="center" py="3">
-                    <Text
-                      size="3"
-                      weight="bold"
-                      style={{
-                        color: "#ffffff",
-                        fontFamily: theme.font_style,
-                      }}
-                    >
-                      {link.label}
-                    </Text>
-                  </Flex>
-                </Card>
-              </a>
-            ))}
+                  <Card
+                    style={{
+                      backgroundColor: theme.button_color,
+                      cursor: "pointer",
+                      transition: "transform 0.2s",
+                      border: isPremium ? "3px solid gold" : undefined,
+                      position: "relative",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "scale(1.02)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "scale(1)";
+                    }}
+                  >
+                    <Flex justify="center" align="center" py="3" gap="2">
+                      <Text
+                        size="3"
+                        weight="bold"
+                        style={{
+                          color: "#ffffff",
+                          fontFamily: theme.font_style,
+                        }}
+                      >
+                        {link.label}
+                      </Text>
+                      {isPremium && !hasUserAccess && (
+                        <Text
+                          size="2"
+                          style={{
+                            background: "gold",
+                            color: "black",
+                            padding: "4px 8px",
+                            borderRadius: "6px",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          🔒 {priceInSui} SUI
+                        </Text>
+                      )}
+                      {isPremium && hasUserAccess && (
+                        <Text size="2" style={{ color: "gold" }}>
+                          ✓ Unlocked
+                        </Text>
+                      )}
+                    </Flex>
+                  </Card>
+                </a>
+              );
+            })}
           </Flex>
+
+          {/* Payment Modal */}
+          <Dialog.Root open={!!selectedLink} onOpenChange={() => setSelectedLink(null)}>
+            <Dialog.Content style={{ maxWidth: 450 }}>
+              <Dialog.Title>Premium Link</Dialog.Title>
+              <Dialog.Description size="2" mb="4">
+                This link requires payment to access.
+              </Dialog.Description>
+
+              {selectedLink && (
+                <Flex direction="column" gap="3">
+                  <Card>
+                    <Flex direction="column" gap="2">
+                      <Text weight="bold">{selectedLink.link.label}</Text>
+                      <Text size="2" color="gray">
+                        Price: {(parseInt(selectedLink.link.price) / 1_000_000_000).toFixed(2)} SUI
+                      </Text>
+                    </Flex>
+                  </Card>
+
+                  {!account ? (
+                    <Text size="2" color="red">
+                      Please connect your wallet to purchase access
+                    </Text>
+                  ) : (
+                    <Flex gap="3" justify="end">
+                      <Dialog.Close>
+                        <Button variant="soft" color="gray">
+                          Cancel
+                        </Button>
+                      </Dialog.Close>
+                      <Button onClick={handlePayment}>
+                        Pay & Access
+                      </Button>
+                    </Flex>
+                  )}
+                </Flex>
+              )}
+            </Dialog.Content>
+          </Dialog.Root>
 
           {/* View Count */}
           <Text size="1" style={{ color: theme.text_color, opacity: 0.6 }}>

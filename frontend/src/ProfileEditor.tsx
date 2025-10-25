@@ -17,7 +17,7 @@ import {
 } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { PACKAGE_ID, MODULE_NAME } from "./constants";
+import { PACKAGE_ID, MODULE_NAME, REGISTRY_ID } from "./constants";
 import { Link, LinkTreeProfile } from "./types";
 
 export function ProfileEditor() {
@@ -34,6 +34,7 @@ export function ProfileEditor() {
   const [title, setTitle] = useState("");
   const [avatarCid, setAvatarCid] = useState("");
   const [bio, setBio] = useState("");
+  const [username, setUsername] = useState("");
   const [links, setLinks] = useState<Link[]>([]);
   const [backgroundColor, setBackgroundColor] = useState("#ffffff");
   const [textColor, setTextColor] = useState("#000000");
@@ -98,13 +99,66 @@ export function ProfileEditor() {
     try {
       const tx = new Transaction();
 
-      tx.moveCall({
-        target: `${PACKAGE_ID}::${MODULE_NAME}::mint_profile`,
+      // Create profile
+      const [profile] = tx.moveCall({
+        target: `${PACKAGE_ID}::${MODULE_NAME}::create_profile`,
         arguments: [
           tx.pure.string(title),
           tx.pure.string(avatarCid),
           tx.pure.string(bio),
         ],
+      });
+
+      // Add links if any
+      links.forEach((link) => {
+        const targetFunction = link.is_premium ? "add_premium_link" : "add_link";
+        const args = link.is_premium
+          ? [
+              profile,
+              tx.pure.string(link.label),
+              tx.pure.string(link.url),
+              tx.pure.u64(link.price),
+            ]
+          : [
+              profile,
+              tx.pure.string(link.label),
+              tx.pure.string(link.url),
+            ];
+
+        tx.moveCall({
+          target: `${PACKAGE_ID}::${MODULE_NAME}::${targetFunction}`,
+          arguments: args,
+        });
+      });
+
+      // Update theme
+      tx.moveCall({
+        target: `${PACKAGE_ID}::${MODULE_NAME}::update_theme`,
+        arguments: [
+          profile,
+          tx.pure.string(backgroundColor),
+          tx.pure.string(textColor),
+          tx.pure.string(buttonColor),
+          tx.pure.string(fontStyle),
+        ],
+      });
+
+      // Register username if provided
+      if (username.trim()) {
+        tx.moveCall({
+          target: `${PACKAGE_ID}::${MODULE_NAME}::register_name`,
+          arguments: [
+            tx.object(REGISTRY_ID),
+            profile,
+            tx.pure.string(username.toLowerCase().trim()),
+          ],
+        });
+      }
+
+      // Transfer to sender
+      tx.moveCall({
+        target: `${PACKAGE_ID}::${MODULE_NAME}::transfer_profile`,
+        arguments: [profile, tx.pure.address(account.address)],
       });
 
       signAndExecuteTransaction(
@@ -114,12 +168,20 @@ export function ProfileEditor() {
         {
           onSuccess: (result) => {
             console.log("Profile created successfully!", result);
-            alert("Profile created successfully!");
+            const msg = username 
+              ? `Profile created! Your link: suitree.com/${username}`
+              : "Profile created successfully!";
+            alert(msg);
             navigate("/");
           },
           onError: (error) => {
             console.error("Error creating profile:", error);
-            alert("Failed to create profile");
+            const errorMsg = error.message || String(error);
+            if (errorMsg.includes("ENameAlreadyTaken")) {
+              alert("Username is already taken! Please choose another.");
+            } else {
+              alert("Failed to create profile: " + errorMsg);
+            }
             setLoading(false);
           },
         }
@@ -196,29 +258,47 @@ export function ProfileEditor() {
     }
   };
 
-  const handleAddLink = async () => {
-    if (!objectId) {
-      // In create mode, just add to local state
-      setLinks([...links, { label: "New Link", url: "https://" }]);
-      return;
-    }
-
+  const handleAddLink = async (isPremium = false) => {
     const label = prompt("Enter link label:");
     const url = prompt("Enter URL:");
 
     if (!label || !url) return;
 
+    let price = "0";
+    if (isPremium) {
+      const priceInSui = prompt("Enter price in SUI (e.g., 0.1):");
+      if (!priceInSui) return;
+      // Convert SUI to MIST (1 SUI = 1_000_000_000 MIST)
+      price = String(parseFloat(priceInSui) * 1_000_000_000);
+    }
+
+    if (!objectId) {
+      // In create mode, just add to local state
+      setLinks([...links, { label, url, is_premium: isPremium, price }]);
+      return;
+    }
+
     setLoading(true);
     try {
       const tx = new Transaction();
 
+      const targetFunction = isPremium ? "add_premium_link" : "add_link";
+      const args = isPremium
+        ? [
+            tx.object(objectId),
+            tx.pure.string(label),
+            tx.pure.string(url),
+            tx.pure.u64(price),
+          ]
+        : [
+            tx.object(objectId),
+            tx.pure.string(label),
+            tx.pure.string(url),
+          ];
+
       tx.moveCall({
-        target: `${PACKAGE_ID}::${MODULE_NAME}::add_link`,
-        arguments: [
-          tx.object(objectId),
-          tx.pure.string(label),
-          tx.pure.string(url),
-        ],
+        target: `${PACKAGE_ID}::${MODULE_NAME}::${targetFunction}`,
+        arguments: args,
       });
 
       signAndExecuteTransaction(
@@ -384,6 +464,22 @@ export function ProfileEditor() {
                 rows={3}
               />
             </Box>
+
+            {!isEditMode && (
+              <Box>
+                <Text size="2" weight="bold" mb="1">
+                  Username (suitree.com/username) - Optional
+                </Text>
+                <TextField.Root
+                  placeholder="yourname"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+                />
+                <Text size="1" color="gray" mt="1">
+                  Only lowercase letters and numbers. Example: suitree.com/{username || "yourname"}
+                </Text>
+              </Box>
+            )}
           </Flex>
         </Card>
 
@@ -448,9 +544,14 @@ export function ProfileEditor() {
           <Flex direction="column" gap="4">
             <Flex justify="between" align="center">
               <Heading size="4">Links</Heading>
-              <Button size="2" onClick={handleAddLink}>
-                + Add Link
-              </Button>
+              <Flex gap="2">
+                <Button size="2" variant="soft" onClick={() => handleAddLink(false)}>
+                  + Free Link
+                </Button>
+                <Button size="2" onClick={() => handleAddLink(true)}>
+                  💰 Premium Link
+                </Button>
+              </Flex>
             </Flex>
 
             {links.length === 0 ? (
@@ -460,10 +561,25 @@ export function ProfileEditor() {
             ) : (
               <Flex direction="column" gap="2">
                 {links.map((link, index) => (
-                  <Card key={index}>
+                  <Card key={index} style={{ 
+                    border: link.is_premium ? "2px solid gold" : undefined 
+                  }}>
                     <Flex justify="between" align="center">
                       <Flex direction="column" gap="1">
-                        <Text weight="bold">{link.label}</Text>
+                        <Flex align="center" gap="2">
+                          <Text weight="bold">{link.label}</Text>
+                          {link.is_premium && (
+                            <Text size="1" style={{ 
+                              background: "gold", 
+                              color: "black", 
+                              padding: "2px 6px", 
+                              borderRadius: "4px",
+                              fontWeight: "bold"
+                            }}>
+                              💰 {(parseInt(link.price) / 1_000_000_000).toFixed(2)} SUI
+                            </Text>
+                          )}
+                        </Flex>
                         <Text size="1" color="gray">
                           {link.url}
                         </Text>

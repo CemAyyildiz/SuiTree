@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import { HomePage } from "./HomePage";
 import { ProfileEditor } from "./ProfileEditor";
 import { ProfileView } from "./ProfileView";
+import { UsernameResolver } from "./UsernameResolver";
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
         <Route path="/create" element={<ProfileEditor />} />
         <Route path="/edit/:objectId" element={<ProfileEditor />} />
         <Route path="/profile/:objectId" element={<ProfileView />} />
+        <Route path="/:username" element={<UsernameResolver />} />
       </Routes>
     </BrowserRouter>
   );

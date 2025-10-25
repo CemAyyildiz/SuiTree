@@ -4,6 +4,9 @@ module contrat::contrat;
 
 use std::string::{String};
 use sui::dynamic_field;
+use sui::coin::{Self, Coin};
+use sui::sui::SUI;
+use sui::balance::{Self, Balance};
 
 // ==================== Error Codes ====================
 
@@ -11,6 +14,8 @@ const ENotOwner: u64 = 0;
 const EInvalidIndex: u64 = 1;
 const ENameAlreadyTaken: u64 = 2;
 const ENameNotFound: u64 = 3;
+const EInsufficientPayment: u64 = 4;
+const ENotPremiumLink: u64 = 5;
 
 // ==================== Structs ====================
 
@@ -18,6 +23,8 @@ const ENameNotFound: u64 = 3;
 public struct Link has store, copy, drop {
     label: String,
     url: String,
+    is_premium: bool,
+    price: u64, // Price in MIST (1 SUI = 1_000_000_000 MIST)
 }
 
 /// Theme settings for the profile
@@ -39,6 +46,7 @@ public struct LinkTreeProfile has key, store {
     theme: Theme,
     verified: bool,
     view_count: u64,
+    earnings: Balance<SUI>, // Earnings from premium links
 }
 
 /// Registry for name resolution (name -> profile object_id mapping)
@@ -50,6 +58,18 @@ public struct NameRegistry has key {
 /// Wrapper for storing object_id in dynamic fields
 public struct ProfileReference has store, copy, drop {
     profile_id: ID,
+}
+
+/// Access record for premium links - stored as dynamic field
+/// Key: (link_index, user_address)
+public struct LinkAccessKey has store, copy, drop {
+    link_index: u64,
+    user: address,
+}
+
+public struct LinkAccess has store, copy, drop {
+    granted: bool,
+    paid_amount: u64,
 }
 
 // ==================== Initializer ====================
@@ -88,6 +108,7 @@ public fun create_profile(
         theme: default_theme,
         verified: false,
         view_count: 0,
+        earnings: balance::zero(),
     }
 }
 
@@ -144,7 +165,30 @@ public entry fun add_link(
     ctx: &mut TxContext
 ) {
     assert!(profile.owner == ctx.sender(), ENotOwner);
-    let link = Link { label, url };
+    let link = Link { 
+        label, 
+        url, 
+        is_premium: false, 
+        price: 0 
+    };
+    vector::push_back(&mut profile.links, link);
+}
+
+/// Add a premium (paid) link to the profile
+public entry fun add_premium_link(
+    profile: &mut LinkTreeProfile,
+    label: String,
+    url: String,
+    price: u64,
+    ctx: &mut TxContext
+) {
+    assert!(profile.owner == ctx.sender(), ENotOwner);
+    let link = Link { 
+        label, 
+        url, 
+        is_premium: true, 
+        price 
+    };
     vector::push_back(&mut profile.links, link);
 }
 
@@ -162,6 +206,36 @@ public entry fun update_link(
     let link = vector::borrow_mut(&mut profile.links, index);
     link.label = label;
     link.url = url;
+}
+
+/// Update premium link price
+public entry fun update_link_price(
+    profile: &mut LinkTreeProfile,
+    index: u64,
+    new_price: u64,
+    ctx: &mut TxContext
+) {
+    assert!(profile.owner == ctx.sender(), ENotOwner);
+    assert!(index < vector::length(&profile.links), EInvalidIndex);
+    
+    let link = vector::borrow_mut(&mut profile.links, index);
+    assert!(link.is_premium, ENotPremiumLink);
+    link.price = new_price;
+}
+
+/// Make a link premium/paid
+public entry fun make_link_premium(
+    profile: &mut LinkTreeProfile,
+    index: u64,
+    price: u64,
+    ctx: &mut TxContext
+) {
+    assert!(profile.owner == ctx.sender(), ENotOwner);
+    assert!(index < vector::length(&profile.links), EInvalidIndex);
+    
+    let link = vector::borrow_mut(&mut profile.links, index);
+    link.is_premium = true;
+    link.price = price;
 }
 
 /// Remove a link by index
@@ -231,6 +305,78 @@ public entry fun increment_views(
     profile.view_count = profile.view_count + 1;
 }
 
+/// Pay for access to a premium link
+public entry fun pay_for_link_access(
+    profile: &mut LinkTreeProfile,
+    link_index: u64,
+    payment: Coin<SUI>,
+    ctx: &mut TxContext
+) {
+    assert!(link_index < vector::length(&profile.links), EInvalidIndex);
+    
+    let link = vector::borrow(&profile.links, link_index);
+    assert!(link.is_premium, ENotPremiumLink);
+    
+    let payment_value = coin::value(&payment);
+    assert!(payment_value >= link.price, EInsufficientPayment);
+    
+    // Add payment to profile earnings
+    let payment_balance = coin::into_balance(payment);
+    balance::join(&mut profile.earnings, payment_balance);
+    
+    // Grant access by adding dynamic field
+    let access_key = LinkAccessKey {
+        link_index,
+        user: ctx.sender(),
+    };
+    
+    let access = LinkAccess {
+        granted: true,
+        paid_amount: payment_value,
+    };
+    
+    // If already has access, update it; otherwise add new
+    if (dynamic_field::exists_(&profile.id, access_key)) {
+        let existing: &mut LinkAccess = dynamic_field::borrow_mut(&mut profile.id, access_key);
+        existing.paid_amount = existing.paid_amount + payment_value;
+    } else {
+        dynamic_field::add(&mut profile.id, access_key, access);
+    };
+}
+
+/// Check if user has access to a premium link
+public fun has_link_access(
+    profile: &LinkTreeProfile,
+    link_index: u64,
+    user: address,
+): bool {
+    let access_key = LinkAccessKey {
+        link_index,
+        user,
+    };
+    
+    if (dynamic_field::exists_(&profile.id, access_key)) {
+        let access: &LinkAccess = dynamic_field::borrow(&profile.id, access_key);
+        access.granted
+    } else {
+        false
+    }
+}
+
+/// Withdraw earnings from premium links
+public entry fun withdraw_earnings(
+    profile: &mut LinkTreeProfile,
+    ctx: &mut TxContext
+) {
+    assert!(profile.owner == ctx.sender(), ENotOwner);
+    
+    let amount = balance::value(&profile.earnings);
+    if (amount > 0) {
+        let withdrawn = coin::take(&mut profile.earnings, amount, ctx);
+        transfer::public_transfer(withdrawn, ctx.sender());
+    };
+}
+
 /// Transfer profile to another address
 public entry fun transfer_profile(
     profile: LinkTreeProfile,
@@ -295,4 +441,19 @@ public fun get_link_label(link: &Link): &String {
 /// Get link url
 public fun get_link_url(link: &Link): &String {
     &link.url
+}
+
+/// Check if link is premium
+public fun is_link_premium(link: &Link): bool {
+    link.is_premium
+}
+
+/// Get link price
+public fun get_link_price(link: &Link): u64 {
+    link.price
+}
+
+/// Get profile earnings
+public fun get_earnings(profile: &LinkTreeProfile): u64 {
+    balance::value(&profile.earnings)
 }
