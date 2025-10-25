@@ -1,88 +1,82 @@
-import { useEnokiFlow, useZkLogin } from "@mysten/enoki/react";
-import { Button, Flex, Text, Card } from "@radix-ui/themes";
-import { PersonIcon, ExitIcon } from "@radix-ui/react-icons";
-import { GOOGLE_CLIENT_ID } from "./enokiConfig";
+import { useEnokiFlow, useZkLogin } from '@mysten/enoki/react';
+import { Button, Flex, Text } from '@radix-ui/themes';
+import { useState } from 'react';
 
 export function ZkLoginButton() {
-  const flow = useEnokiFlow();
+  const enokiFlow = useEnokiFlow();
   const zkLogin = useZkLogin();
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
+    setIsLoading(true);
     try {
-      // Google OAuth ile zkLogin başlat
-      const protocol = window.location.protocol;
-      const host = window.location.host;
-      const redirectUrl = `${protocol}//${host}`;
+      // Google Client ID kontrolü
+      const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      if (!googleClientId) {
+        alert('Google Client ID bulunamadı. Lütfen .env dosyasında VITE_GOOGLE_CLIENT_ID ayarlayın.');
+        setIsLoading(false);
+        return;
+      }
 
-      await flow.createAuthorizationURL({
-        provider: "google",
-        clientId: GOOGLE_CLIENT_ID,
-        redirectUrl,
-        extraParams: {
-          scope: ["openid", "email", "profile"],
-        },
+      // Google OAuth URL oluştur
+      const authUrl = await enokiFlow.createAuthorizationURL({
+        provider: 'google',
+        clientId: googleClientId,
+        redirectUrl: window.location.origin, // Sadece origin, pathname yok (HashRouter kullandığımız için)
+        network: 'testnet',
       });
+
+      console.log('Google OAuth URL:', authUrl);
+      
+      // Google OAuth'a yönlendir
+      window.location.href = authUrl;
     } catch (error) {
-      console.error("Google login error:", error);
+      console.error('Google login başlatılamadı:', error);
+      alert('Login başlatılamadı: ' + (error as Error).message);
+      setIsLoading(false);
     }
   };
 
   const handleLogout = async () => {
     try {
-      await zkLogin.logout();
+      await enokiFlow.logout();
+      console.log('Çıkış yapıldı');
+      // Sayfayı yenile
+      window.location.reload();
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error('Çıkış yapılamadı:', error);
     }
   };
 
-  // Kullanıcı giriş yapmışsa
+  // Eğer zkLogin ile giriş yapılmışsa
   if (zkLogin.address) {
     return (
-      <Card>
-        <Flex direction="column" gap="3">
-          <Flex align="center" gap="2">
-            <PersonIcon width="20" height="20" />
-            <Text size="2" weight="bold">
-              zkLogin ile Bağlı
-            </Text>
-          </Flex>
-          <Text size="1" color="gray" style={{ wordBreak: "break-all" }}>
-            Adres: {zkLogin.address}
-          </Text>
-          <Button 
-            onClick={handleLogout} 
-            variant="soft" 
-            color="red"
-            style={{ cursor: "pointer" }}
-          >
-            <ExitIcon />
-            Çıkış Yap
-          </Button>
-        </Flex>
-      </Card>
+      <Flex align="center" gap="2">
+        <Text size="2" color="green">
+          ✓ Google ile bağlı: {zkLogin.address.slice(0, 6)}...{zkLogin.address.slice(-4)}
+        </Text>
+        <Button
+          onClick={handleLogout}
+          variant="soft"
+          color="red"
+          size="1"
+        >
+          Çıkış Yap
+        </Button>
+      </Flex>
     );
   }
 
-  // Kullanıcı giriş yapmamışsa
+  // Hiçbir bağlantı yoksa, Google login butonu göster
   return (
-    <Card>
-      <Flex direction="column" gap="3">
-        <Text size="3" weight="bold" align="center">
-          zkLogin ile Giriş
-        </Text>
-        <Text size="2" color="gray" align="center">
-          Google hesabınızla güvenli bir şekilde giriş yapın
-        </Text>
-        <Button 
-          onClick={handleGoogleLogin}
-          size="3"
-          style={{ cursor: "pointer" }}
-        >
-          <PersonIcon />
-          Google ile Giriş Yap
-        </Button>
-      </Flex>
-    </Card>
+    <Button
+      onClick={handleGoogleLogin}
+      variant="solid"
+      color="blue"
+      size="3"
+      disabled={isLoading}
+    >
+      {isLoading ? '⏳ Yükleniyor...' : '🔐 Google ile Giriş Yap'}
+    </Button>
   );
 }
-

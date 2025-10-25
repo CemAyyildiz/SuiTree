@@ -17,13 +17,13 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Theme appearance="dark">
       <QueryClientProvider client={queryClient}>
-        <EnokiFlowProvider {...enokiFlowConfig}>
-          <SuiClientProvider networks={networkConfig} defaultNetwork="testnet">
+        <SuiClientProvider networks={networkConfig} defaultNetwork="testnet">
+          <EnokiFlowProvider {...enokiFlowConfig}>
             <WalletProvider autoConnect>
               <App />
             </WalletProvider>
-          </SuiClientProvider>
-        </EnokiFlowProvider>
+          </EnokiFlowProvider>
+        </SuiClientProvider>
       </QueryClientProvider>
     </Theme>
   </React.StrictMode>,

@@ -2,6 +2,7 @@ import { ConnectButton } from "@mysten/dapp-kit";
 import { Box, Container, Card, Flex, Heading, Text } from "@radix-ui/themes";
 import { HashRouter, Routes, Route, Link, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useAuthCallback } from "@mysten/enoki/react";
 import { HomePage } from "./HomePage";
 import { ProfileEditor } from "./ProfileEditor";
 import { ProfileView } from "./ProfileView";
@@ -134,6 +135,21 @@ function AdminDashboardSite() {
 // Main App - decides which site to show
 function App() {
   const { mode, username } = useSubdomainDetection();
+  const { handled } = useAuthCallback();
+
+  // OAuth callback'ten dönüldüğünde gösterilecek loading ekranı
+  if (handled) {
+    return (
+      <Container size="2" mt="9">
+        <Card>
+          <Flex direction="column" align="center" gap="3" py="6">
+            <Text size="5">⏳ Google ile giriş yapılıyor...</Text>
+            <Text size="2" color="gray">Lütfen bekleyin</Text>
+          </Flex>
+        </Card>
+      </Container>
+    );
+  }
 
   // Loading
   if (mode === "loading") {
