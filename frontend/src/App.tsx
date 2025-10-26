@@ -7,6 +7,7 @@ import { ProfileEditor } from "./ProfileEditor";
 import { UsernameResolver } from "./components/UsernameResolver";
 import { PublicProfile } from "./pages/PublicProfile";
 import { DemoPage } from "./pages/demo";
+import { Dashboard } from "./pages/admin/Dashboard";
 import { SubdomainTest } from "./pages/SubdomainTest";
 
 // Wrapper to get objectId from route params and load profile data from blockchain
@@ -252,7 +253,7 @@ function AdminDashboardSite() {
 
       {/* Admin routes */}
       <Routes>
-        <Route path="/" element={<DemoPage />} />
+        <Route path="/" element={<Dashboard />} />
         <Route path="/create" element={<ProfileEditor />} />
         <Route path="/edit/:objectId" element={<ProfileEditor />} />
         <Route path="/profile/:objectId" element={<ProfileViewWrapper />} />

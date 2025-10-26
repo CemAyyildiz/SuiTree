@@ -40,7 +40,7 @@ const getLinkIcon = (icon?: string) => {
 };
 
 
-export const PublicProfile: React.FC<PublicProfileProps> = ({ profile }) => {
+export const PublicProfile: React.FC<PublicProfileProps> = ({ profile }: { profile: LinkTreeProfile }) => {
   const [copiedAddress, setCopiedAddress] = React.useState(false);
   const [paymentModal, setPaymentModal] = React.useState<{
     isOpen: boolean;
@@ -263,6 +263,8 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ profile }) => {
           isOpen={paymentModal.isOpen}
           onClose={handleClosePaymentModal}
           link={paymentModal.link}
+          profileId={profile.id.id}
+          linkIndex={paymentModal.linkIndex}
           onPaymentSuccess={handlePaymentSuccess}
           onPaymentError={handlePaymentError}
         />

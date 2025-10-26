@@ -189,7 +189,7 @@ export const Dashboard: React.FC = () => {
         </div>
         <Button 
           leftIcon={<Plus className="h-4 w-4" />}
-          onClick={() => window.location.href = '/#/create'}
+          onClick={() => window.location.hash = '#/create'}
         >
           Create Profile
         </Button>
@@ -234,7 +234,7 @@ export const Dashboard: React.FC = () => {
       {/* Profiles */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Profiles</CardTitle>
+          <CardTitle>My Profiles</CardTitle>
         </CardHeader>
         <CardContent>
           {filteredProfiles.length === 0 ? (
@@ -250,7 +250,7 @@ export const Dashboard: React.FC = () => {
               </p>
               <Button 
                 leftIcon={<Plus className="h-4 w-4" />}
-                onClick={() => window.location.href = '/#/create'}
+                onClick={() => window.location.hash = '#/create'}
               >
                 Create Your First Profile
               </Button>
@@ -303,7 +303,7 @@ export const Dashboard: React.FC = () => {
                       variant="ghost"
                       size="sm"
                       leftIcon={<Eye className="h-4 w-4" />}
-                      onClick={() => window.location.href = `/#/profile/${profile.id.id}`}
+                      onClick={() => window.location.hash = `#/profile/${profile.id.id}`}
                     >
                       View
                     </Button>
@@ -311,7 +311,7 @@ export const Dashboard: React.FC = () => {
                       variant="ghost"
                       size="sm"
                       leftIcon={<Edit className="h-4 w-4" />}
-                      onClick={() => window.location.href = `/#/edit/${profile.id.id}`}
+                      onClick={() => window.location.hash = `#/edit/${profile.id.id}`}
                     >
                       Edit
                     </Button>
@@ -319,7 +319,7 @@ export const Dashboard: React.FC = () => {
                       variant="ghost"
                       size="sm"
                       leftIcon={<ExternalLink className="h-4 w-4" />}
-                      onClick={() => window.open(`/#/profile/${profile.id.id}`, '_blank')}
+                      onClick={() => window.open(`#/profile/${profile.id.id}`, '_blank')}
                     >
                       Public
                     </Button>

@@ -4,6 +4,9 @@ import { X, CreditCard, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Modal } from './ui/modal';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
+import { Transaction } from '@mysten/sui/transactions';
+import { PACKAGE_ID } from '../constants';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -13,6 +16,8 @@ interface PaymentModalProps {
     url: string;
     price: string;
   };
+  profileId: string; // Profile object ID for the transaction
+  linkIndex: number; // Index of the link in the profile
   onPaymentSuccess: (linkUrl: string) => void;
   onPaymentError: (error: string) => void;
 }
@@ -23,11 +28,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
   onClose,
   link,
+  profileId,
+  linkIndex,
   onPaymentSuccess,
   onPaymentError,
 }) => {
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  
+  const account = useCurrentAccount();
+  const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
 
   const formatPrice = (priceInMist: string) => {
     const mist = parseInt(priceInMist);
@@ -36,31 +46,64 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   };
 
   const handlePayment = async () => {
+    if (!account?.address) {
+      setPaymentStatus('error');
+      setErrorMessage('Please connect your wallet first');
+      return;
+    }
+
     setPaymentStatus('processing');
     setErrorMessage('');
 
     try {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const txb = new Transaction();
       
-      // For demo purposes, simulate 90% success rate
-      const isSuccess = Math.random() > 0.1;
+      // Convert price to MIST (1 SUI = 1,000,000,000 MIST)
+      const priceInMist = parseInt(link.price);
       
-      if (isSuccess) {
-        setPaymentStatus('success');
-        setTimeout(() => {
-          onPaymentSuccess(link.url);
-          onClose();
-          setPaymentStatus('idle');
-        }, 1500);
-      } else {
-        setPaymentStatus('error');
-        setErrorMessage('Payment failed. Please try again.');
-      }
-    } catch (error) {
+      // Split coins for payment
+      const [coin] = txb.splitCoins(txb.gas, [priceInMist]);
+      
+      // Call the pay_for_link_access function
+      txb.moveCall({
+        target: `${PACKAGE_ID}::contrat::pay_for_link_access`,
+        arguments: [
+          txb.object(profileId), // Profile object
+          txb.pure.u64(linkIndex),   // Link index
+          coin,                  // Payment coin
+        ],
+      });
+
+      // Execute the transaction
+      await signAndExecuteTransaction({
+        transaction: txb,
+      });
+
+      // If we get here, the transaction was successful
+      setPaymentStatus('success');
+      setTimeout(() => {
+        onPaymentSuccess(link.url);
+        onClose();
+        setPaymentStatus('idle');
+      }, 1500);
+    } catch (error: any) {
+      console.error('Payment error:', error);
       setPaymentStatus('error');
-      setErrorMessage('Payment processing error. Please try again.');
-      onPaymentError(errorMessage);
+      
+      // Parse error message
+      let errorMsg = 'Payment failed. Please try again.';
+      if (error.message?.includes('InsufficientBalance')) {
+        errorMsg = 'Insufficient SUI balance for this payment.';
+      } else if (error.message?.includes('UserRejected')) {
+        errorMsg = 'Transaction was rejected by user.';
+      } else if (error.message?.includes('InsufficientPayment')) {
+        errorMsg = 'Payment amount is insufficient.';
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      
+      setErrorMessage(errorMsg);
+      onPaymentError(errorMsg);
     }
   };
 
