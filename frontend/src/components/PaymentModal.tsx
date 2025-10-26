@@ -4,7 +4,7 @@ import { X, CreditCard, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Modal } from './ui/modal';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
+import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from '@mysten/dapp-kit';
 import { Transaction } from '@mysten/sui/transactions';
 import { PACKAGE_ID } from '../constants';
 
@@ -37,6 +37,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string>('');
   
   const account = useCurrentAccount();
+  const suiClient = useSuiClient();
   const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
 
   const formatPrice = (priceInMist: string) => {
@@ -74,36 +75,78 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         ],
       });
 
-      // Execute the transaction
-      await signAndExecuteTransaction({
-        transaction: txb,
-      });
+      // Execute the transaction with callbacks
+      signAndExecuteTransaction(
+        { transaction: txb },
+        {
+          onSuccess: async (result) => {
+            try {
+              // Wait for transaction to be confirmed on blockchain
+              if (result.digest) {
+                await suiClient.waitForTransaction({
+                  digest: result.digest,
+                  options: {
+                    showEffects: true,
+                    showEvents: true,
+                  },
+                });
 
-      // If we get here, the transaction was successful
-      setPaymentStatus('success');
-      setTimeout(() => {
-        onPaymentSuccess(link.url);
-        onClose();
-        setPaymentStatus('idle');
-      }, 1500);
+                // Check if transaction was successful
+                const txDetails = await suiClient.getTransactionBlock({
+                  digest: result.digest,
+                  options: {
+                    showEffects: true,
+                    showEvents: true,
+                  },
+                });
+
+                // Verify transaction was successful
+                if (txDetails.effects?.status?.status === 'success') {
+                  setPaymentStatus('success');
+                  setTimeout(() => {
+                    onPaymentSuccess(link.url);
+                    onClose();
+                    setPaymentStatus('idle');
+                  }, 1500);
+                } else {
+                  throw new Error('Transaction failed on blockchain');
+                }
+              } else {
+                throw new Error('No transaction digest received');
+              }
+            } catch (waitError) {
+              console.error('Transaction confirmation error:', waitError);
+              setPaymentStatus('error');
+              setErrorMessage('Transaction confirmation failed. Please try again.');
+              onPaymentError('Transaction confirmation failed');
+            }
+          },
+          onError: (error) => {
+            console.error('Payment error:', error);
+            setPaymentStatus('error');
+            
+            // Parse error message
+            let errorMsg = 'Payment failed. Please try again.';
+            if (error.message?.includes('InsufficientBalance')) {
+              errorMsg = 'Insufficient SUI balance for this payment.';
+            } else if (error.message?.includes('UserRejected')) {
+              errorMsg = 'Transaction was rejected by user.';
+            } else if (error.message?.includes('InsufficientPayment')) {
+              errorMsg = 'Payment amount is insufficient.';
+            } else if (error.message) {
+              errorMsg = error.message;
+            }
+            
+            setErrorMessage(errorMsg);
+            onPaymentError(errorMsg);
+          },
+        }
+      );
     } catch (error: any) {
       console.error('Payment error:', error);
       setPaymentStatus('error');
-      
-      // Parse error message
-      let errorMsg = 'Payment failed. Please try again.';
-      if (error.message?.includes('InsufficientBalance')) {
-        errorMsg = 'Insufficient SUI balance for this payment.';
-      } else if (error.message?.includes('UserRejected')) {
-        errorMsg = 'Transaction was rejected by user.';
-      } else if (error.message?.includes('InsufficientPayment')) {
-        errorMsg = 'Payment amount is insufficient.';
-      } else if (error.message) {
-        errorMsg = error.message;
-      }
-      
-      setErrorMessage(errorMsg);
-      onPaymentError(errorMsg);
+      setErrorMessage('Payment failed. Please try again.');
+      onPaymentError('Payment failed');
     }
   };
 

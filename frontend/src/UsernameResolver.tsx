@@ -163,24 +163,57 @@ export function UsernameResolver({ username }: UsernameResolverProps) {
         ],
       });
 
+      // Execute transaction with callbacks
       signAndExecuteTransaction(
         { transaction: tx },
         {
-          onSuccess: () => {
-            alert("Payment successful! Opening link...");
-            setHasAccess({ ...hasAccess, [selectedLink.index]: true });
-            setSelectedLink(null);
-            window.open(selectedLink.link.url, "_blank");
+          onSuccess: async (result) => {
+            try {
+              // Wait for transaction to be confirmed on blockchain
+              if (result.digest) {
+                await suiClient.waitForTransaction({
+                  digest: result.digest,
+                  options: {
+                    showEffects: true,
+                    showEvents: true,
+                  },
+                });
+
+                // Check if transaction was successful
+                const txDetails = await suiClient.getTransactionBlock({
+                  digest: result.digest,
+                  options: {
+                    showEffects: true,
+                    showEvents: true,
+                  },
+                });
+
+                // Verify transaction was successful
+                if (txDetails.effects?.status?.status === 'success') {
+                  alert("Payment successful! Opening link...");
+                  setHasAccess({ ...hasAccess, [selectedLink.index]: true });
+                  setSelectedLink(null);
+                  window.open(selectedLink.link.url, "_blank");
+                } else {
+                  throw new Error('Transaction failed on blockchain');
+                }
+              } else {
+                throw new Error('No transaction digest received');
+              }
+            } catch (waitError) {
+              console.error('Transaction confirmation error:', waitError);
+              alert("Transaction confirmation failed. Please try again.");
+            }
           },
           onError: (error) => {
             console.error("Payment failed:", error);
-            alert("Payment failed: " + error.message);
+            alert("Payment failed: " + (error.message || "Unknown error"));
           },
         }
       );
-    } catch (error) {
-      console.error("Error:", error);
-      alert("Payment failed");
+    } catch (error: any) {
+      console.error("Payment failed:", error);
+      alert("Payment failed: " + (error.message || "Unknown error"));
     }
   };
 
