@@ -152,62 +152,23 @@ export function UsernameResolver({ username }: UsernameResolverProps) {
 
     try {
       const tx = new Transaction();
-      const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(selectedLink.link.price)]);
+      const priceInMist = parseInt(selectedLink.link.price);
+      
+      // Simple SUI transfer to profile owner
+      tx.transferObjects(
+        [tx.splitCoins(tx.gas, [priceInMist])[0]],
+        profile.owner
+      );
 
-      tx.moveCall({
-        target: `${PACKAGE_ID}::${MODULE_NAME}::pay_for_link_access`,
-        arguments: [
-          tx.object(profile.id.id),
-          tx.pure.u64(selectedLink.index),
-          coin,
-        ],
-      });
-
-      // Execute transaction with callbacks
       signAndExecuteTransaction(
         { transaction: tx },
         {
-          onSuccess: async (result) => {
-            try {
-              console.log('Payment transaction result:', result);
-              
-              // Wait for transaction to be confirmed on blockchain
-              if (result.digest) {
-                await suiClient.waitForTransaction({
-                  digest: result.digest,
-                  options: {
-                    showEffects: true,
-                    showEvents: true,
-                  },
-                });
-
-                // Check if transaction was successful
-                const txDetails = await suiClient.getTransactionBlock({
-                  digest: result.digest,
-                  options: {
-                    showEffects: true,
-                    showEvents: true,
-                  },
-                });
-
-                console.log('Transaction details:', txDetails);
-
-                // Verify transaction was successful
-                if (txDetails.effects?.status?.status === 'success') {
-                  alert("Payment successful! Opening link...");
-                  setHasAccess({ ...hasAccess, [selectedLink.index]: true });
-                  setSelectedLink(null);
-                  window.open(selectedLink.link.url, "_blank");
-                } else {
-                  throw new Error('Transaction failed on blockchain');
-                }
-              } else {
-                throw new Error('No transaction digest received');
-              }
-            } catch (waitError) {
-              console.error('Transaction confirmation error:', waitError);
-              alert("Transaction confirmation failed. Please try again.");
-            }
+          onSuccess: (result) => {
+            console.log('Payment successful:', result);
+            alert("Payment successful! Opening link...");
+            setHasAccess({ ...hasAccess, [selectedLink.index]: true });
+            setSelectedLink(null);
+            window.open(selectedLink.link.url, "_blank");
           },
           onError: (error) => {
             console.error("Payment failed:", error);

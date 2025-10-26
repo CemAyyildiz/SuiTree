@@ -135,63 +135,35 @@ export function ProfileView({ objectId }: ProfileViewProps) {
 
     try {
       const tx = new Transaction();
-
-      const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(selectedLink.link.price)]);
-
-      tx.moveCall({
-        target: `${PACKAGE_ID}::${MODULE_NAME}::pay_for_link_access`,
-        arguments: [
-          tx.object(objectId),
-          tx.pure.u64(selectedLink.index),
-          coin,
-        ],
+      const priceInMist = parseInt(selectedLink.link.price);
+      
+      // Get profile owner address
+      const profileData = await suiClient.getObject({
+        id: objectId,
+        options: { showContent: true },
       });
+      
+      if (!profileData.data?.content || profileData.data.content.dataType !== 'moveObject') {
+        throw new Error('Profile not found');
+      }
+      
+      const profileOwner = (profileData.data.content.fields as any).owner;
+      
+      // Simple SUI transfer - shows as basic transfer in Slush wallet
+      tx.transferObjects(
+        [tx.splitCoins(tx.gas, [priceInMist])[0]],
+        profileOwner
+      );
 
-      // Execute transaction with callbacks
       signAndExecuteTransaction(
         { transaction: tx },
         {
-          onSuccess: async (result) => {
-            try {
-              console.log('Payment transaction result:', result);
-              
-              // Wait for transaction to be confirmed on blockchain
-              if (result.digest) {
-                await suiClient.waitForTransaction({
-                  digest: result.digest,
-                  options: {
-                    showEffects: true,
-                    showEvents: true,
-                  },
-                });
-
-                // Check if transaction was successful
-                const txDetails = await suiClient.getTransactionBlock({
-                  digest: result.digest,
-                  options: {
-                    showEffects: true,
-                    showEvents: true,
-                  },
-                });
-
-                console.log('Transaction details:', txDetails);
-
-                // Verify transaction was successful
-                if (txDetails.effects?.status?.status === 'success') {
-                  alert("Payment successful! Opening link...");
-                  setHasAccess({ ...hasAccess, [selectedLink.index]: true });
-                  setSelectedLink(null);
-                  window.open(selectedLink.link.url, "_blank");
-                } else {
-                  throw new Error('Transaction failed on blockchain');
-                }
-              } else {
-                throw new Error('No transaction digest received');
-              }
-            } catch (waitError) {
-              console.error('Transaction confirmation error:', waitError);
-              alert("Transaction confirmation failed. Please try again.");
-            }
+          onSuccess: (result) => {
+            console.log('Payment successful:', result);
+            alert("Payment successful! Opening link...");
+            setHasAccess({ ...hasAccess, [selectedLink.index]: true });
+            setSelectedLink(null);
+            window.open(selectedLink.link.url, "_blank");
           },
           onError: (error) => {
             console.error("Payment failed:", error);

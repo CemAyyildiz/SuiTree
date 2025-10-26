@@ -263,8 +263,7 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ profile }: { profi
           isOpen={paymentModal.isOpen}
           onClose={handleClosePaymentModal}
           link={paymentModal.link}
-          profileId={profile.id.id}
-          linkIndex={paymentModal.linkIndex}
+          profileOwner={profile.owner}
           onPaymentSuccess={handlePaymentSuccess}
           onPaymentError={handlePaymentError}
         />

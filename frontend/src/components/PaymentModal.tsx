@@ -4,9 +4,8 @@ import { X, CreditCard, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Modal } from './ui/modal';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from '@mysten/dapp-kit';
+import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import { Transaction } from '@mysten/sui/transactions';
-import { PACKAGE_ID } from '../constants';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -16,8 +15,7 @@ interface PaymentModalProps {
     url: string;
     price: string;
   };
-  profileId: string; // Profile object ID for the transaction
-  linkIndex: number; // Index of the link in the profile
+  profileOwner: string; // Profile owner address for transfer
   onPaymentSuccess: (linkUrl: string) => void;
   onPaymentError: (error: string) => void;
 }
@@ -28,8 +26,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
   onClose,
   link,
-  profileId,
-  linkIndex,
+  profileOwner,
   onPaymentSuccess,
   onPaymentError,
 }) => {
@@ -37,7 +34,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string>('');
   
   const account = useCurrentAccount();
-  const suiClient = useSuiClient();
   const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
 
   const formatPrice = (priceInMist: string) => {
@@ -57,90 +53,41 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     setErrorMessage('');
 
     try {
-      const txb = new Transaction();
+      const tx = new Transaction();
       
-      // Convert price to MIST (1 SUI = 1,000,000,000 MIST)
+      // Convert price to MIST
       const priceInMist = parseInt(link.price);
       
-      // Split coins for payment
-      const [coin] = txb.splitCoins(txb.gas, [priceInMist]);
-      
-      // Call the pay_for_link_access function
-      txb.moveCall({
-        target: `${PACKAGE_ID}::contrat::pay_for_link_access`,
-        arguments: [
-          txb.object(profileId), // Profile object
-          txb.pure.u64(linkIndex),   // Link index
-          coin,                  // Payment coin
-        ],
-      });
+      // Simple SUI transfer to profile owner
+      tx.transferObjects(
+        [tx.splitCoins(tx.gas, [priceInMist])[0]],
+        profileOwner
+      );
 
-      // Execute the transaction with callbacks
+      // Execute transaction
       signAndExecuteTransaction(
-        { transaction: txb },
+        { transaction: tx },
         {
-          onSuccess: async (result) => {
-            try {
-              console.log('Payment transaction result:', result);
-              
-              // Wait for transaction to be confirmed on blockchain
-              if (result.digest) {
-                await suiClient.waitForTransaction({
-                  digest: result.digest,
-                  options: {
-                    showEffects: true,
-                    showEvents: true,
-                  },
-                });
-
-                // Check if transaction was successful
-                const txDetails = await suiClient.getTransactionBlock({
-                  digest: result.digest,
-                  options: {
-                    showEffects: true,
-                    showEvents: true,
-                  },
-                });
-
-                console.log('Transaction details:', txDetails);
-
-                // Verify transaction was successful
-                if (txDetails.effects?.status?.status === 'success') {
-                  setPaymentStatus('success');
-                  setTimeout(() => {
-                    onPaymentSuccess(link.url);
-                    onClose();
-                    setPaymentStatus('idle');
-                  }, 1500);
-                } else {
-                  throw new Error('Transaction failed on blockchain');
-                }
-              } else {
-                throw new Error('No transaction digest received');
-              }
-            } catch (waitError) {
-              console.error('Transaction confirmation error:', waitError);
-              setPaymentStatus('error');
-              setErrorMessage('Transaction confirmation failed. Please try again.');
-              onPaymentError('Transaction confirmation failed');
-            }
+          onSuccess: (result) => {
+            console.log('Payment successful:', result);
+            setPaymentStatus('success');
+            
+            // Wait a bit then redirect to link
+            setTimeout(() => {
+              onPaymentSuccess(link.url);
+              onClose();
+              setPaymentStatus('idle');
+            }, 2000);
           },
           onError: (error) => {
-            console.error('Payment error:', error);
+            console.error('Payment failed:', error);
             setPaymentStatus('error');
             
-            // Parse error message
             let errorMsg = 'Payment failed. Please try again.';
             if (error.message?.includes('InsufficientBalance')) {
-              errorMsg = 'Insufficient SUI balance for this payment.';
+              errorMsg = 'Not enough SUI balance.';
             } else if (error.message?.includes('UserRejected')) {
-              errorMsg = 'Transaction was rejected by user.';
-            } else if (error.message?.includes('InsufficientPayment')) {
-              errorMsg = 'Payment amount is insufficient.';
-            } else if (error.message?.includes('ENotPremiumLink')) {
-              errorMsg = 'This link is not a premium link.';
-            } else if (error.message?.includes('EInvalidIndex')) {
-              errorMsg = 'Invalid link index.';
+              errorMsg = 'Transaction cancelled.';
             } else if (error.message) {
               errorMsg = error.message;
             }
