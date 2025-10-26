@@ -28,12 +28,7 @@ interface LinkTreeProfile {
     is_premium: boolean;
     price: string;
   }>;
-  theme: {
-    background_color: string;
-    text_color: string;
-    button_color: string;
-    font_style: string;
-  };
+  // Theme removed from smart contract
   verified: boolean;
   view_count: string;
   earnings?: string;
@@ -83,12 +78,7 @@ export const Dashboard: React.FC = () => {
             avatar_cid: content?.fields?.avatar_cid || "",
             bio: content?.fields?.bio || "",
             links: content?.fields?.links || [],
-            theme: content?.fields?.theme || {
-              background_color: "#ffffff",
-              text_color: "#000000",
-              button_color: "#0066cc",
-              font_style: "Arial",
-            },
+            // Theme removed from smart contract
             verified: content?.fields?.verified || false,
             view_count: content?.fields?.view_count || "0",
             earnings: content?.fields?.earnings || "0",
@@ -107,6 +97,8 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     loadOwnedProfiles();
   }, [userAddress]);
+
+  // Note: Profile deletion functionality removed since delete_profile was removed from smart contract
 
   // Calculate stats from real data
   const totalProfiles = profiles.length;

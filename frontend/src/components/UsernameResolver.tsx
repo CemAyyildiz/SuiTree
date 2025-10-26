@@ -76,12 +76,6 @@ export const UsernameResolver: React.FC<UsernameResolverProps> = ({ username }) 
           avatar_cid: content.fields.avatar_cid,
           bio: content.fields.bio,
           links: parsedLinks,
-          theme: content.fields.theme || {
-            background_color: "#f8f9fa",
-            text_color: "#2c3e50",
-            button_color: "#3498db",
-            font_style: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
-          },
           verified: content.fields.verified,
           view_count: content.fields.view_count || "0",
           earnings: content.fields.earnings,

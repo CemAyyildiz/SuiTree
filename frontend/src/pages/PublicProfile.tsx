@@ -14,6 +14,7 @@ import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Avatar } from '../components/ui/Avatar';
 import { Badge } from '../components/ui/badge';
+import { PaymentModal } from '../components/PaymentModal';
 
 // Import types from types.ts
 import { LinkTreeProfile } from '../types';
@@ -41,7 +42,15 @@ const getLinkIcon = (icon?: string) => {
 
 export const PublicProfile: React.FC<PublicProfileProps> = ({ profile }) => {
   const [copiedAddress, setCopiedAddress] = React.useState(false);
-  const [payingForLink, setPayingForLink] = React.useState<number | null>(null);
+  const [paymentModal, setPaymentModal] = React.useState<{
+    isOpen: boolean;
+    link: any;
+    linkIndex: number;
+  }>({
+    isOpen: false,
+    link: null,
+    linkIndex: -1,
+  });
 
   const copyAddress = async () => {
     try {
@@ -66,23 +75,42 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ profile }) => {
 
   const handlePremiumLinkClick = async (link: any, index: number) => {
     if (link.is_premium) {
-      setPayingForLink(index);
-      // TODO: Implement payment flow
-      // For now, just show a message
-      alert(`Premium Link: ${link.label}\nPrice: ${formatPrice(link.price)} SUI\n\nPayment system will be implemented soon!`);
-      setPayingForLink(null);
+      setPaymentModal({
+        isOpen: true,
+        link: link,
+        linkIndex: index,
+      });
     } else {
       window.open(link.url, '_blank');
     }
   };
 
+  const handlePaymentSuccess = (linkUrl: string) => {
+    // Payment successful, redirect to the link
+    window.open(linkUrl, '_blank');
+    setPaymentModal({
+      isOpen: false,
+      link: null,
+      linkIndex: -1,
+    });
+  };
+
+  const handlePaymentError = (error: string) => {
+    console.error('Payment error:', error);
+    // Could show a toast notification here
+  };
+
+  const handleClosePaymentModal = () => {
+    setPaymentModal({
+      isOpen: false,
+      link: null,
+      linkIndex: -1,
+    });
+  };
+
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4"
-      style={{
-        backgroundColor: profile.theme.background_color || '#F9FAFB',
-        fontFamily: profile.theme.font_style || 'Inter, sans-serif',
-      }}
+      className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#F9FAFB] to-white dark:from-[#0D0D0F] dark:to-[#18181B]"
     >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -119,7 +147,7 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ profile }) => {
             <div className="flex items-center justify-center space-x-2">
               <h1 
                 className="text-2xl font-bold"
-                style={{ color: profile.theme.text_color || '#1F2937' }}
+                style={{ color: '#1F2937' }}
               >
                 {profile.title}
               </h1>
@@ -133,7 +161,7 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ profile }) => {
             {profile.bio && (
               <p 
                 className="text-sm leading-relaxed"
-                style={{ color: profile.theme.text_color || '#6B7280', opacity: 0.8 }}
+                style={{ color: '#6B7280', opacity: 0.8 }}
               >
                 {profile.bio}
               </p>
@@ -189,10 +217,9 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ profile }) => {
                     variant="outline"
                     className="w-full justify-start space-x-3 h-12"
                     onClick={() => handlePremiumLinkClick(link, index)}
-                    disabled={payingForLink === index}
                     style={{
-                      borderColor: profile.theme.button_color || '#4B9EFF',
-                      color: profile.theme.button_color || '#4B9EFF',
+                      borderColor: '#4B9EFF',
+                      color: '#4B9EFF',
                     }}
                   >
                     <span className="text-lg">{getLinkIcon()}</span>
@@ -229,6 +256,17 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ profile }) => {
           </motion.div>
         </Card>
       </motion.div>
+
+      {/* Payment Modal */}
+      {paymentModal.isOpen && paymentModal.link && (
+        <PaymentModal
+          isOpen={paymentModal.isOpen}
+          onClose={handleClosePaymentModal}
+          link={paymentModal.link}
+          onPaymentSuccess={handlePaymentSuccess}
+          onPaymentError={handlePaymentError}
+        />
+      )}
     </div>
   );
 };

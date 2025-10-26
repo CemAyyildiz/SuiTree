@@ -91,12 +91,6 @@ export function UsernameResolver({ username }: UsernameResolverProps) {
           avatar_cid: profileContent.fields.avatar_cid,
           bio: profileContent.fields.bio,
           links: parsedLinks,
-          theme: profileContent.fields.theme || {
-            background_color: "#ffffff",
-            text_color: "#000000",
-            button_color: "#0066cc",
-            font_style: "Arial",
-          },
           verified: profileContent.fields.verified,
           view_count: profileContent.fields.view_count || "0",
           earnings: profileContent.fields.earnings,
@@ -217,13 +211,12 @@ export function UsernameResolver({ username }: UsernameResolverProps) {
     );
   }
 
-  const theme = profile.theme;
 
   // Render profile (same as ProfileView but URL stays as /username)
   return (
     <Box
       style={{
-        backgroundColor: theme.background_color,
+        backgroundColor: '#F9FAFB',
         minHeight: "100vh",
         paddingTop: "2rem",
         paddingBottom: "2rem",
@@ -239,7 +232,7 @@ export function UsernameResolver({ username }: UsernameResolverProps) {
                 height: "120px",
                 borderRadius: "50%",
                 overflow: "hidden",
-                border: `3px solid ${theme.button_color}`,
+                border: `3px solid #4B9EFF`,
               }}
             >
               <img
@@ -262,8 +255,8 @@ export function UsernameResolver({ username }: UsernameResolverProps) {
           <Heading
             size="7"
             style={{
-              color: theme.text_color,
-              fontFamily: theme.font_style,
+              color: '#1F2937',
+              fontFamily: 'Inter, sans-serif',
             }}
           >
             {profile.title}
@@ -276,7 +269,7 @@ export function UsernameResolver({ username }: UsernameResolverProps) {
               size="3"
               align="center"
               style={{
-                color: theme.text_color,
+                color: '#6B7280',
                 maxWidth: "400px",
               }}
             >
@@ -297,7 +290,7 @@ export function UsernameResolver({ username }: UsernameResolverProps) {
           <Flex direction="column" gap="3" style={{ width: "100%", maxWidth: "500px" }}>
             {profile.links.length === 0 && (
               <Card style={{ padding: "40px", textAlign: "center" }}>
-                <Text size="4" weight="bold" style={{ color: theme.text_color, marginBottom: "8px" }}>
+                <Text size="4" weight="bold" style={{ color: '#1F2937', marginBottom: "8px" }}>
                   No links yet
                 </Text>
                 <Text size="2" color="gray">
@@ -330,7 +323,7 @@ export function UsernameResolver({ username }: UsernameResolverProps) {
                 >
                   <Card
                     style={{
-                      backgroundColor: theme.button_color,
+                      backgroundColor: '#4B9EFF',
                       cursor: "pointer",
                       transition: "transform 0.2s",
                       border: isPremium ? "3px solid gold" : undefined,
@@ -349,7 +342,7 @@ export function UsernameResolver({ username }: UsernameResolverProps) {
                         weight="bold"
                         style={{
                           color: "#ffffff",
-                          fontFamily: theme.font_style,
+                          fontFamily: 'Inter, sans-serif',
                         }}
                       >
                         {link.label}
@@ -421,12 +414,12 @@ export function UsernameResolver({ username }: UsernameResolverProps) {
           </Dialog.Root>
 
           {/* View Count */}
-          <Text size="1" style={{ color: theme.text_color, opacity: 0.6 }}>
+          <Text size="1" style={{ color: '#6B7280', opacity: 0.6 }}>
             {profile.view_count} views
           </Text>
 
           {/* Footer */}
-          <Text size="1" style={{ color: theme.text_color, opacity: 0.5, marginTop: "2rem" }}>
+          <Text size="1" style={{ color: '#6B7280', opacity: 0.5, marginTop: "2rem" }}>
             Powered by SuiTree 🌳
           </Text>
         </Flex>

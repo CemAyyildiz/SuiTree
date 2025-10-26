@@ -44,10 +44,6 @@ export function ProfileEditor(props?: ProfileEditorProps) {
   const [bio, setBio] = useState("");
   const [username, setUsername] = useState("");
   const [links, setLinks] = useState<Link[]>([]);
-  const [backgroundColor, setBackgroundColor] = useState("#ffffff");
-  const [textColor, setTextColor] = useState("#000000");
-  const [buttonColor, setButtonColor] = useState("#0066cc");
-  const [fontStyle, setFontStyle] = useState("Arial");
 
   const isEditMode = !!objectId;
 
@@ -78,7 +74,6 @@ export function ProfileEditor(props?: ProfileEditorProps) {
           avatar_cid: content.fields.avatar_cid,
           bio: content.fields.bio,
           links: content.fields.links || [],
-          theme: content.fields.theme,
           verified: content.fields.verified,
           view_count: content.fields.view_count || "0",
         };
@@ -88,10 +83,6 @@ export function ProfileEditor(props?: ProfileEditorProps) {
         setAvatarCid(profileData.avatar_cid);
         setBio(profileData.bio);
         setLinks(profileData.links);
-        setBackgroundColor(profileData.theme.background_color);
-        setTextColor(profileData.theme.text_color);
-        setButtonColor(profileData.theme.button_color);
-        setFontStyle(profileData.theme.font_style);
       }
     } catch (error) {
       console.error("Error loading profile:", error);
@@ -265,17 +256,6 @@ export function ProfileEditor(props?: ProfileEditorProps) {
         });
       }
 
-      // Update theme
-      tx.moveCall({
-        target: `${PACKAGE_ID}::${MODULE_NAME}::update_theme`,
-        arguments: [
-          tx.object(objectId),
-          tx.pure.string(backgroundColor),
-          tx.pure.string(textColor),
-          tx.pure.string(buttonColor),
-          tx.pure.string(fontStyle),
-        ],
-      });
 
       signAndExecuteTransaction(
         {
@@ -525,62 +505,6 @@ export function ProfileEditor(props?: ProfileEditorProps) {
           </Flex>
         </Card>
 
-        <Card>
-          <Flex direction="column" gap="4">
-            <Flex justify="between" align="center">
-              <Heading size="4">Theme</Heading>
-            </Flex>
-
-            <Flex gap="3" wrap="wrap">
-              <Box style={{ flex: "1 1 45%" }}>
-                <Text size="2" weight="bold" mb="1">
-                  Background Color
-                </Text>
-                <input
-                  type="color"
-                  value={backgroundColor}
-                  onChange={(e) => setBackgroundColor(e.target.value)}
-                  style={{ width: "100%", height: "36px", cursor: "pointer" }}
-                />
-              </Box>
-
-              <Box style={{ flex: "1 1 45%" }}>
-                <Text size="2" weight="bold" mb="1">
-                  Text Color
-                </Text>
-                <input
-                  type="color"
-                  value={textColor}
-                  onChange={(e) => setTextColor(e.target.value)}
-                  style={{ width: "100%", height: "36px", cursor: "pointer" }}
-                />
-              </Box>
-
-              <Box style={{ flex: "1 1 45%" }}>
-                <Text size="2" weight="bold" mb="1">
-                  Button Color
-                </Text>
-                <input
-                  type="color"
-                  value={buttonColor}
-                  onChange={(e) => setButtonColor(e.target.value)}
-                  style={{ width: "100%", height: "36px", cursor: "pointer" }}
-                />
-              </Box>
-
-              <Box style={{ flex: "1 1 45%" }}>
-                <Text size="2" weight="bold" mb="1">
-                  Font Style
-                </Text>
-                <TextField.Root
-                  placeholder="Arial"
-                  value={fontStyle}
-                  onChange={(e) => setFontStyle(e.target.value)}
-                />
-              </Box>
-            </Flex>
-          </Flex>
-        </Card>
 
         <Card>
           <Flex direction="column" gap="4">

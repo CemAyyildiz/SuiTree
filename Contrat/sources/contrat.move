@@ -27,13 +27,6 @@ public struct Link has store, copy, drop {
     price: u64, // Price in MIST (1 SUI = 1_000_000_000 MIST)
 }
 
-/// Theme settings for the profile
-public struct Theme has store, copy, drop {
-    background_color: String,
-    text_color: String,
-    button_color: String,
-    font_style: String,
-}
 
 /// Main LinkTree profile object
 public struct LinkTreeProfile has key, store {
@@ -43,7 +36,6 @@ public struct LinkTreeProfile has key, store {
     avatar_cid: String,
     bio: String,
     links: vector<Link>,
-    theme: Theme,
     verified: bool,
     view_count: u64,
     earnings: Balance<SUI>, // Earnings from premium links
@@ -91,13 +83,6 @@ public fun create_profile(
     bio: String,
     ctx: &mut TxContext
 ): LinkTreeProfile {
-    let default_theme = Theme {
-        background_color: std::string::utf8(b"#ffffff"),
-        text_color: std::string::utf8(b"#000000"),
-        button_color: std::string::utf8(b"#0066cc"),
-        font_style: std::string::utf8(b"Arial"),
-    };
-
     LinkTreeProfile {
         id: object::new(ctx),
         owner: ctx.sender(),
@@ -105,7 +90,6 @@ public fun create_profile(
         avatar_cid,
         bio,
         links: vector::empty<Link>(),
-        theme: default_theme,
         verified: false,
         view_count: 0,
         earnings: balance::zero(),
@@ -279,23 +263,6 @@ public entry fun update_bio(
     profile.bio = new_bio;
 }
 
-/// Update profile theme
-public entry fun update_theme(
-    profile: &mut LinkTreeProfile,
-    background_color: String,
-    text_color: String,
-    button_color: String,
-    font_style: String,
-    ctx: &mut TxContext
-) {
-    assert!(profile.owner == ctx.sender(), ENotOwner);
-    profile.theme = Theme {
-        background_color,
-        text_color,
-        button_color,
-        font_style,
-    };
-}
 
 /// Increment view count (anyone can call this)
 public entry fun increment_views(
@@ -386,6 +353,9 @@ public entry fun transfer_profile(
     transfer::transfer(profile, recipient);
 }
 
+// Note: Profile deletion functionality temporarily removed due to balance consumption complexity
+// Profiles can still be transferred to other users or left inactive
+
 // ==================== View Functions ====================
 
 /// Get profile owner
@@ -418,10 +388,6 @@ public fun get_link(profile: &LinkTreeProfile, index: u64): &Link {
     vector::borrow(&profile.links, index)
 }
 
-/// Get theme
-public fun get_theme(profile: &LinkTreeProfile): &Theme {
-    &profile.theme
-}
 
 /// Get view count
 public fun get_view_count(profile: &LinkTreeProfile): u64 {
