@@ -6,7 +6,6 @@ use std::string::{String};
 use sui::dynamic_field;
 use sui::coin::{Self, Coin};
 use sui::sui::SUI;
-use sui::balance::{Self, Balance};
 
 // ==================== Error Codes ====================
 
@@ -38,7 +37,6 @@ public struct LinkTreeProfile has key, store {
     links: vector<Link>,
     verified: bool,
     view_count: u64,
-    earnings: Balance<SUI>, // Earnings from premium links
 }
 
 /// Registry for name resolution (name -> profile object_id mapping)
@@ -92,7 +90,6 @@ public fun create_profile(
         links: vector::empty<Link>(),
         verified: false,
         view_count: 0,
-        earnings: balance::zero(),
     }
 }
 
@@ -287,9 +284,8 @@ public entry fun pay_for_link_access(
     let payment_value = coin::value(&payment);
     assert!(payment_value >= link.price, EInsufficientPayment);
     
-    // Add payment to profile earnings
-    let payment_balance = coin::into_balance(payment);
-    balance::join(&mut profile.earnings, payment_balance);
+    // Transfer payment directly to profile owner
+    transfer::public_transfer(payment, profile.owner);
     
     // Grant access by adding dynamic field
     let access_key = LinkAccessKey {
@@ -331,18 +327,6 @@ public fun has_link_access(
 }
 
 /// Withdraw earnings from premium links
-public entry fun withdraw_earnings(
-    profile: &mut LinkTreeProfile,
-    ctx: &mut TxContext
-) {
-    assert!(profile.owner == ctx.sender(), ENotOwner);
-    
-    let amount = balance::value(&profile.earnings);
-    if (amount > 0) {
-        let withdrawn = coin::take(&mut profile.earnings, amount, ctx);
-        transfer::public_transfer(withdrawn, ctx.sender());
-    };
-}
 
 /// Transfer profile to another address
 public entry fun transfer_profile(
@@ -419,7 +403,26 @@ public fun get_link_price(link: &Link): u64 {
     link.price
 }
 
-/// Get profile earnings
-public fun get_earnings(profile: &LinkTreeProfile): u64 {
-    balance::value(&profile.earnings)
+
+/// Delete profile (only owner can delete their own profile)
+public entry fun delete_profile(
+    profile: LinkTreeProfile,
+    ctx: &mut TxContext
+) {
+    // Only the owner can delete the profile
+    assert!(profile.owner == tx_context::sender(ctx), ENotOwner);
+    
+    // Delete the profile object
+    let LinkTreeProfile {
+        id,
+        owner: _,
+        title: _,
+        avatar_cid: _,
+        bio: _,
+        links: _,
+        verified: _,
+        view_count: _,
+    } = profile;
+    
+    object::delete(id);
 }

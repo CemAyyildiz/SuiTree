@@ -429,6 +429,44 @@ export function ProfileEditor(props?: ProfileEditorProps) {
     }
   };
 
+  const handleDeleteProfile = async () => {
+    if (!objectId || !userAddress) return;
+
+    if (!confirm("⚠️ Bu profili tamamen silmek istediğinizden emin misiniz?\n\nBu işlem geri alınamaz!")) return;
+
+    setLoading(true);
+    try {
+      const tx = new Transaction();
+
+      tx.moveCall({
+        target: `${PACKAGE_ID}::${MODULE_NAME}::delete_profile`,
+        arguments: [tx.object(objectId)],
+      });
+
+      signAndExecuteTransaction(
+        {
+          transaction: tx,
+        },
+        {
+          onSuccess: (result) => {
+            console.log("Profile deleted successfully!", result);
+            alert("✅ Profil başarıyla silindi!");
+            navigate("/");
+          },
+          onError: (error) => {
+            console.error("Error deleting profile:", error);
+            alert("❌ Profil silinemedi: " + (error as Error).message);
+            setLoading(false);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error:", error);
+      alert("❌ Profil silinemedi: " + (error as Error).message);
+      setLoading(false);
+    }
+  };
+
   if (!userAddress) {
     return (
       <Container size="2" mt="9">
@@ -578,6 +616,17 @@ export function ProfileEditor(props?: ProfileEditorProps) {
         </Card>
 
         <Flex justify="end" gap="3">
+          {isEditMode && (
+            <Button
+              size="3"
+              variant="soft"
+              color="red"
+              onClick={handleDeleteProfile}
+              disabled={loading}
+            >
+              {loading ? "Deleting..." : "Delete Profile"}
+            </Button>
+          )}
           <Button
             size="3"
             onClick={isEditMode ? handleUpdateProfile : handleCreateProfile}
