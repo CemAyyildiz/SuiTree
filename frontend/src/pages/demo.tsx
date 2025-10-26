@@ -71,7 +71,7 @@ const mockProfile = {
 type ViewMode = 'admin' | 'public' | 'overview';
 
 export const DemoPage: React.FC = () => {
-  const [viewMode, setViewMode] = useState<ViewMode>('overview');
+  const [viewMode, setViewMode] = useState<ViewMode>('admin');
   const [currentPath, setCurrentPath] = useState('/admin');
   const [dynamicProfile, setDynamicProfile] = useState<LinkTreeProfile | null>(null);
   const [loading, setLoading] = useState(false);

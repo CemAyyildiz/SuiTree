@@ -3,7 +3,6 @@ import { Box, Container, Card, Flex, Heading, Text } from "@radix-ui/themes";
 import { HashRouter, Routes, Route, Link, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useSuiClient } from "@mysten/dapp-kit";
-import { HomePage } from "./HomePage";
 import { ProfileEditor } from "./ProfileEditor";
 import { UsernameResolver } from "./components/UsernameResolver";
 import { PublicProfile } from "./pages/PublicProfile";
@@ -253,7 +252,7 @@ function AdminDashboardSite() {
 
       {/* Admin routes */}
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<DemoPage />} />
         <Route path="/create" element={<ProfileEditor />} />
         <Route path="/edit/:objectId" element={<ProfileEditor />} />
         <Route path="/profile/:objectId" element={<ProfileViewWrapper />} />
