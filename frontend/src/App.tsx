@@ -1,7 +1,7 @@
 import { Container, Card, Flex, Text } from "@radix-ui/themes";
 import { HashRouter, Routes, Route, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { useSuiClient } from "@mysten/dapp-kit";
+import { useSuiClient, useCurrentAccount } from "@mysten/dapp-kit";
 import { ProfileEditor } from "./ProfileEditor";
 import { UsernameResolver } from "./components/UsernameResolver";
 import { PublicProfile } from "./pages/PublicProfile";
@@ -224,6 +224,8 @@ function PublicProfileSite({ username }: { username: string }) {
 
 // Admin Dashboard Site (suitree.walrus.site)
 function AdminDashboardSite() {
+  const account = useCurrentAccount();
+  
   return (
     <HashRouter>
       {/* Admin routes */}
@@ -232,7 +234,7 @@ function AdminDashboardSite() {
           <AdminLayout
             currentPath="/"
             onNavigate={(path) => window.location.hash = `#${path}`}
-            walletAddress="0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
+            walletAddress={account?.address}
             userName="Admin User"
           >
             <Dashboard />

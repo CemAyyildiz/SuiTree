@@ -412,19 +412,21 @@ export function ProfileEditor(props?: ProfileEditorProps) {
           transaction: tx,
         },
         {
-          onSuccess: () => {
-            console.log("Link removed successfully!");
+          onSuccess: (result) => {
+            console.log("Link removed successfully!", result);
             loadProfile();
+            setLoading(false);
           },
           onError: (error) => {
             console.error("Error removing link:", error);
-            alert("Failed to remove link");
+            alert("Failed to remove link: " + (error.message || "Unknown error"));
             setLoading(false);
           },
         }
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
+      alert("Failed to remove link: " + (error.message || "Unknown error"));
       setLoading(false);
     }
   };

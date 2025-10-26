@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { 
   Bell, 
   Search, 
-  Wallet, 
   Moon,
   Sun,
   Monitor
@@ -13,6 +12,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Avatar } from '../ui/Avatar';
 import { useTheme } from '../../contexts/ThemeContext';
+import { ConnectButton } from '@mysten/dapp-kit';
 
 interface TopbarProps {
   isCollapsed: boolean;
@@ -114,9 +114,7 @@ export const Topbar: React.FC<TopbarProps> = ({
               </span>
             </div>
           ) : (
-            <Button variant="outline" size="sm" leftIcon={<Wallet className="h-4 w-4" />}>
-              Connect Wallet
-            </Button>
+            <ConnectButton />
           )}
 
           {/* Create Profile Button */}

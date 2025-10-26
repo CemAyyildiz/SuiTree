@@ -81,6 +81,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         {
           onSuccess: async (result) => {
             try {
+              console.log('Payment transaction result:', result);
+              
               // Wait for transaction to be confirmed on blockchain
               if (result.digest) {
                 await suiClient.waitForTransaction({
@@ -99,6 +101,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                     showEvents: true,
                   },
                 });
+
+                console.log('Transaction details:', txDetails);
 
                 // Verify transaction was successful
                 if (txDetails.effects?.status?.status === 'success') {
@@ -133,6 +137,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               errorMsg = 'Transaction was rejected by user.';
             } else if (error.message?.includes('InsufficientPayment')) {
               errorMsg = 'Payment amount is insufficient.';
+            } else if (error.message?.includes('ENotPremiumLink')) {
+              errorMsg = 'This link is not a premium link.';
+            } else if (error.message?.includes('EInvalidIndex')) {
+              errorMsg = 'Invalid link index.';
             } else if (error.message) {
               errorMsg = error.message;
             }

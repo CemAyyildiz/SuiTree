@@ -169,6 +169,8 @@ export function UsernameResolver({ username }: UsernameResolverProps) {
         {
           onSuccess: async (result) => {
             try {
+              console.log('Payment transaction result:', result);
+              
               // Wait for transaction to be confirmed on blockchain
               if (result.digest) {
                 await suiClient.waitForTransaction({
@@ -187,6 +189,8 @@ export function UsernameResolver({ username }: UsernameResolverProps) {
                     showEvents: true,
                   },
                 });
+
+                console.log('Transaction details:', txDetails);
 
                 // Verify transaction was successful
                 if (txDetails.effects?.status?.status === 'success') {
