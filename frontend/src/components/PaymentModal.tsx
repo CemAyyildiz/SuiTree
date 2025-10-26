@@ -16,7 +16,6 @@ interface PaymentModalProps {
     price: string;
   };
   profileOwner: string; // Profile owner address for transfer
-  onPaymentSuccess: (linkUrl: string) => void;
   onPaymentError: (error: string) => void;
 }
 
@@ -27,7 +26,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   onClose,
   link,
   profileOwner,
-  onPaymentSuccess,
   onPaymentError,
 }) => {
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('idle');
@@ -72,12 +70,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             console.log('Payment successful:', result);
             setPaymentStatus('success');
             
-            // Wait a bit then redirect to link
+            // Force redirect immediately
             setTimeout(() => {
-              onPaymentSuccess(link.url);
-              onClose();
-              setPaymentStatus('idle');
-            }, 2000);
+              window.location.href = link.url;
+            }, 100);
           },
           onError: (error) => {
             console.error('Payment failed:', error);

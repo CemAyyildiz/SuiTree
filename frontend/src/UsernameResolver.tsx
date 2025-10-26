@@ -165,10 +165,12 @@ export function UsernameResolver({ username }: UsernameResolverProps) {
         {
           onSuccess: (result) => {
             console.log('Payment successful:', result);
-            alert("Payment successful! Opening link...");
-            setHasAccess({ ...hasAccess, [selectedLink.index]: true });
+            setHasAccess(prev => ({ ...prev, [selectedLink.index]: true }));
             setSelectedLink(null);
-            window.open(selectedLink.link.url, "_blank");
+            // Force redirect
+            setTimeout(() => {
+              window.location.href = selectedLink.link.url;
+            }, 100);
           },
           onError: (error) => {
             console.error("Payment failed:", error);

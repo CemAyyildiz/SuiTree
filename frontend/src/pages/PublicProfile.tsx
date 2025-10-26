@@ -85,16 +85,6 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ profile }: { profi
     }
   };
 
-  const handlePaymentSuccess = (linkUrl: string) => {
-    // Payment successful, redirect to the link
-    window.open(linkUrl, '_blank');
-    setPaymentModal({
-      isOpen: false,
-      link: null,
-      linkIndex: -1,
-    });
-  };
-
   const handlePaymentError = (error: string) => {
     console.error('Payment error:', error);
     // Could show a toast notification here
@@ -264,7 +254,6 @@ export const PublicProfile: React.FC<PublicProfileProps> = ({ profile }: { profi
           onClose={handleClosePaymentModal}
           link={paymentModal.link}
           profileOwner={profile.owner}
-          onPaymentSuccess={handlePaymentSuccess}
           onPaymentError={handlePaymentError}
         />
       )}
