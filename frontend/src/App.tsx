@@ -1,6 +1,5 @@
-import { ConnectButton } from "@mysten/dapp-kit";
-import { Box, Container, Card, Flex, Heading, Text } from "@radix-ui/themes";
-import { HashRouter, Routes, Route, Link, useParams } from "react-router-dom";
+import { Container, Card, Flex, Text } from "@radix-ui/themes";
+import { HashRouter, Routes, Route, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useSuiClient } from "@mysten/dapp-kit";
 import { ProfileEditor } from "./ProfileEditor";
@@ -9,6 +8,7 @@ import { PublicProfile } from "./pages/PublicProfile";
 import { DemoPage } from "./pages/demo";
 import { Dashboard } from "./pages/admin/Dashboard";
 import { SubdomainTest } from "./pages/SubdomainTest";
+import { AdminLayout } from "./components/layout/AdminLayout";
 
 // Wrapper to get objectId from route params and load profile data from blockchain
 function ProfileViewWrapper() {
@@ -226,34 +226,18 @@ function PublicProfileSite({ username }: { username: string }) {
 function AdminDashboardSite() {
   return (
     <HashRouter>
-      {/* Admin header with wallet */}
-      <Flex
-        position="sticky"
-        px="4"
-        py="2"
-        justify="between"
-        style={{
-          borderBottom: "1px solid #e5e7eb",
-          backgroundColor: "white",
-          top: 0,
-          zIndex: 100,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-        }}
-      >
-        <Box>
-          <Link to="/" style={{ textDecoration: "none", color: "inherit" }}>
-            <Heading style={{ color: "#1f2937", fontWeight: "700" }}>🌳 SuiTree Admin</Heading>
-          </Link>
-        </Box>
-
-        <Flex gap="3" align="center">
-          <ConnectButton />
-        </Flex>
-      </Flex>
-
       {/* Admin routes */}
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={
+          <AdminLayout
+            currentPath="/"
+            onNavigate={(path) => window.location.hash = `#${path}`}
+            walletAddress="0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
+            userName="Admin User"
+          >
+            <Dashboard />
+          </AdminLayout>
+        } />
         <Route path="/create" element={<ProfileEditor />} />
         <Route path="/edit/:objectId" element={<ProfileEditor />} />
         <Route path="/profile/:objectId" element={<ProfileViewWrapper />} />

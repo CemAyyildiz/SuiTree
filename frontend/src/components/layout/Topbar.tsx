@@ -55,13 +55,24 @@ export const Topbar: React.FC<TopbarProps> = ({
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        'sticky top-0 z-30 bg-white/80 dark:bg-[#18181B]/80 backdrop-blur-md border-b border-gray-200 dark:border-[#27272A]',
+        'sticky top-0 z-30 bg-gray-800 dark:bg-[#18181B] border-b border-gray-600 dark:border-[#27272A]',
         isCollapsed ? 'ml-20' : 'ml-64'
       )}
     >
       <div className="flex items-center justify-between px-6 py-4">
+        {/* Left side - Branding */}
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 bg-gradient-to-br from-[#4B9EFF] to-[#3B82F6] rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-sm">🌳</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="font-bold text-xl text-white">SuiTree</span>
+            <span className="text-sm font-medium text-gray-300">Admin</span>
+          </div>
+        </div>
+
         {/* Search */}
-        <div className="flex-1 max-w-md">
+        <div className="flex-1 max-w-md mx-6">
           <Input
             placeholder="Search profiles..."
             leftIcon={<Search className="h-4 w-4" />}
@@ -97,21 +108,25 @@ export const Topbar: React.FC<TopbarProps> = ({
 
           {/* Wallet Status */}
           {walletAddress ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center space-x-2 px-3 py-1.5 bg-green-100 dark:bg-green-900/20 rounded-lg"
-            >
-              <Wallet className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <span className="text-sm font-medium text-green-700 dark:text-green-300">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium text-white">
                 {formatAddress(walletAddress)}
               </span>
-            </motion.div>
+            </div>
           ) : (
             <Button variant="outline" size="sm" leftIcon={<Wallet className="h-4 w-4" />}>
               Connect Wallet
             </Button>
           )}
+
+          {/* Create Profile Button */}
+          <Button
+            className="bg-[#4B9EFF] hover:bg-[#3B82F6] text-white px-4 py-2 rounded-lg font-medium"
+            leftIcon={<span className="text-lg">+</span>}
+            onClick={() => window.location.hash = '#/create'}
+          >
+            Create Profile
+          </Button>
 
           {/* User Menu */}
           <div className="flex items-center space-x-3">
